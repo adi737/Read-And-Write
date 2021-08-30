@@ -1,30 +1,42 @@
-import { addExperience } from 'actions/profile.action';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
 import { ExperienceFormState } from 'interfaces';
-import React, { useCallback, useState } from 'react';
-import { Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
 
 const AddExperience = (props: ModalProps) => {
   const [formData, setFormData] = useState<ExperienceFormState>({});
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const queryClient = useQueryClient();
 
-  const dispatch = useDispatch();
-
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
-    e.preventDefault();
-    setLoading(true);
+  const addExperience = async () => {
+    const { data } = await api.post('/profile/experience', formData);
+    return data;
+  }
 
-    const id = uuidv4();
-    dispatch(addExperience(formData, setFormData, id, props.onHide, setLoading));
-  }, [dispatch, formData, props.onHide]);
+  const { mutate, isLoading } = useMutation(addExperience, {
+    onSuccess(updatedProfile) {
+      queryClient.setQueryData(['myProfile',], updatedProfile);
+      props.onHide();
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    mutate();
+  }
 
   return (
     <Modal
@@ -50,6 +62,9 @@ const AddExperience = (props: ModalProps) => {
               type="text"
               placeholder="Your position"
             />
+            {
+              error?.position ? <Alert className="mt-2" variant='danger'>{error.position}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicCompany">
             <Form.Label>Company</Form.Label>
@@ -61,6 +76,9 @@ const AddExperience = (props: ModalProps) => {
               type="text"
               placeholder="Your company"
             />
+            {
+              error?.company ? <Alert className="mt-2" variant='danger'>{error.company}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicLocation">
             <Form.Label>Location</Form.Label>
@@ -72,6 +90,9 @@ const AddExperience = (props: ModalProps) => {
               type="text"
               placeholder="Your company location"
             />
+            {
+              error?.location ? <Alert className="mt-2" variant='danger'>{error.location}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicFrom">
             <Form.Label>From</Form.Label>
@@ -82,6 +103,9 @@ const AddExperience = (props: ModalProps) => {
               onChange={handleOnChange}
               type='date'
             />
+            {
+              error?.from ? <Alert className="mt-2" variant='danger'>{error.from}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicTo">
             <Form.Label>To</Form.Label>
@@ -91,6 +115,9 @@ const AddExperience = (props: ModalProps) => {
               onChange={handleOnChange}
               type='date'
             />
+            {
+              error?.to ? <Alert className="mt-2" variant='danger'>{error.to}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicTextarea">
             <Form.Label>Description</Form.Label>
@@ -102,6 +129,9 @@ const AddExperience = (props: ModalProps) => {
               onChange={handleOnChange}
               placeholder="Description..."
             />
+            {
+              error?.description ? <Alert className="mt-2" variant='danger'>{error.description}</Alert> : null
+            }
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -111,8 +141,8 @@ const AddExperience = (props: ModalProps) => {
             Close
         </Button>
           {
-            loading ?
-              <Button variant="primary" type="submit" disabled>
+            isLoading ?
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"

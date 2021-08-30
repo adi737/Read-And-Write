@@ -1,26 +1,21 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getProfiles, cleanProfileState } from 'actions/profile.action';
+import React from 'react';
 import Loader from 'helpers/Loader';
 import ProfileIcon from 'components/utils/ProfileIcon';
 import { Col, Container, Row } from 'react-bootstrap';
-import { State } from 'interfaces';
+import api from 'helpers/api';
+import { useQuery } from 'react-query';
 
 const Profiles = () => {
-  const dispatch = useDispatch();
-  const profiles = useSelector((state: State) => state.profile.profiles);
-  const loading = useSelector((state: State) => state.profile.loading);
+  const getProfiles = async () => {
+    const res = await api.get('/profile/profiles');
+    const data = await res.data;
+    return data;
+  }
 
-  useEffect(() => {
-    dispatch(getProfiles());
-
-    return () => {
-      dispatch(cleanProfileState());
-    }
-  }, [dispatch]);
+  const { data: profiles, isLoading } = useQuery('profiles', getProfiles);
 
   return (
-    loading ?
+    isLoading ?
       <Loader />
       :
       profiles.length === 0 ?

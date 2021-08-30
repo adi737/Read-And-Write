@@ -1,41 +1,47 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { cleanUserState, loginUser } from 'actions/user.action';
-import { v4 as uuidv4 } from 'uuid';
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { loginUser } from 'actions/user.action';
+import { Alert, Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { LoginState, State } from 'interfaces';
+import api from 'helpers/api';
+import { useMutation, useQueryClient } from 'react-query';
+import { toErrorMap } from 'helpers/toErrorMap';
 
 const Login = () => {
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<LoginState>({});
-
-  const isLogged = useSelector((state: State) => state.user.isLogged);
-
+  const [error, setError] = useState<any>(null);
   const dispatch = useDispatch();
+  const isLogged = useSelector((state: State) => state.user.isLogged);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    return () => {
-      dispatch(cleanUserState());
-    }
-  }, [dispatch]);
-
-
-  const onChange = useCallback((e) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
-  }, [formData])
+  }
 
+  const login = async () => {
+    const { data } = await api.post('/user/login', formData);
+    return data;
+  }
 
-  const onSubmit = useCallback(e => {
+  const { mutate, isLoading } = useMutation(login, {
+    onSuccess(data) {
+      dispatch(loginUser(data));
+      queryClient.clear();
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setLoading(true);
-    const id = uuidv4();
-    dispatch(loginUser(formData, id, setLoading));
-  }, [dispatch, formData]);
+    mutate();
+  }
 
 
   return isLogged ?
@@ -44,26 +50,43 @@ const Login = () => {
     <Container className='mt-4'>
       <Row>
         <Col md={{ span: 8, offset: 2 }}>
-          <Form onSubmit={onSubmit}>
+          <Form onSubmit={handleOnSubmit}>
+            {
+              error?.invalid ? <Alert className="mt-2" variant='danger'>{error.invalid}</Alert> : null
+            }
             <Form.Group controlId="formBasicEmail">
               <Form.Label>Email address</Form.Label>
-              <Form.Control onChange={onChange} required type="email" placeholder="Enter email" name='email' />
+              <Form.Control onChange={handleOnChange} required type="email" placeholder="Enter email" name='email' />
               <Form.Text className="text-muted">
                 Don't have an account yet? <Link to='register'>Sign up</Link>
               </Form.Text>
+              {
+                error?.email ? <Alert className="mt-2" variant='danger'>{error.email}</Alert> : null
+              }
             </Form.Group>
 
             <Form.Group controlId="formBasicPassword">
               <Form.Label>Password</Form.Label>
-              <Form.Control className='input-form' onChange={onChange} minLength={8} required type="password" placeholder="Password" name='password' />
+              <Form.Control
+                className='input-form'
+                onChange={handleOnChange}
+                minLength={8}
+                required
+                type="password"
+                placeholder="Password"
+                name='password'
+              />
               <Form.Text className="text-muted">
                 Forgot your password? <Link to='email'>Reset password</Link>
               </Form.Text>
+              {
+                error?.password ? <Alert className="mt-2" variant='danger'>{error.password}</Alert> : null
+              }
             </Form.Group>
 
             {
-              loading ?
-                <Button variant="primary" type="submit" disabled>
+              isLoading ?
+                <Button variant="primary" disabled>
                   <Spinner
                     as="span"
                     animation="grow"

@@ -1,46 +1,60 @@
-import { updateProfile } from 'actions/profile.action';
-import { MediaFormState, State } from 'interfaces';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
-import { useDispatch, useSelector } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
+import { MediaFormState } from 'interfaces';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
 
 const UpdateMedia = (props: ModalProps) => {
   const [formData, setFormData] = useState<MediaFormState>({});
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const myProfile: any = queryClient.getQueryData('myProfile');
 
-  const linkedin = useSelector((state: State) => state.profile.profile.linkedin);
-  const facebook = useSelector((state: State) => state.profile.profile.facebook);
-  const instagram = useSelector((state: State) => state.profile.profile.instagram);
-  const youtube = useSelector((state: State) => state.profile.profile.youtube);
-  const twitter = useSelector((state: State) => state.profile.profile.twitter);
 
-  const dispatch = useDispatch();
+  const updateProfile = async () => {
+    const { data } = await api.patch('/profile', formData);
+    return data;
+  }
 
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const { mutate, isLoading } = useMutation(updateProfile, {
+    onSuccess(updatedProfile) {
+      const profileCache = queryClient.getQueryData(['profile', updatedProfile._id]);
+
+      if (profileCache) {
+        queryClient.setQueryData(['profile', updatedProfile._id], updatedProfile);
+      }
+
+      queryClient.setQueryData('myProfile', updatedProfile);
+      props.onHide();
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
-    const id = uuidv4();
-    dispatch(updateProfile(formData, setFormData, id, props.onHide, setLoading));
-  }, [dispatch, formData, props.onHide]);
+    mutate();
+  }
 
   useEffect(() => {
     setFormData({
-      linkedin,
-      facebook,
-      instagram,
-      youtube,
-      twitter
+      linkedin: myProfile.linkedin ?? '',
+      facebook: myProfile.facebook ?? '',
+      instagram: myProfile.instagram ?? '',
+      youtube: myProfile.youtube ?? '',
+      twitter: myProfile.twitter ?? ''
     });
-  }, [linkedin, facebook, instagram, youtube, twitter]);
+  }, [myProfile]);
 
   return (
     <Modal
@@ -63,7 +77,11 @@ const UpdateMedia = (props: ModalProps) => {
               name='linkedin'
               onChange={handleOnChange}
               type="text"
-              placeholder="LinkedIn link" />
+              placeholder="LinkedIn link"
+            />
+            {
+              error?.linkedin ? <Alert className="mt-2" variant='danger'>{error.linkedin}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicFacebook">
             <Form.Label>Facebook</Form.Label>
@@ -72,7 +90,11 @@ const UpdateMedia = (props: ModalProps) => {
               name='facebook'
               onChange={handleOnChange}
               type="text"
-              placeholder="Facebook link" />
+              placeholder="Facebook link"
+            />
+            {
+              error?.facebook ? <Alert className="mt-2" variant='danger'>{error.facebook}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicInstagram">
             <Form.Label>Instagram</Form.Label>
@@ -81,7 +103,11 @@ const UpdateMedia = (props: ModalProps) => {
               name='instagram'
               onChange={handleOnChange}
               type="text"
-              placeholder="Instagram link" />
+              placeholder="Instagram link"
+            />
+            {
+              error?.instagram ? <Alert className="mt-2" variant='danger'>{error.instagram}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicYoutube">
             <Form.Label>Youtube</Form.Label>
@@ -90,7 +116,11 @@ const UpdateMedia = (props: ModalProps) => {
               name='youtube'
               onChange={handleOnChange}
               type="text"
-              placeholder="Youtube link" />
+              placeholder="Youtube link"
+            />
+            {
+              error?.youtube ? <Alert className="mt-2" variant='danger'>{error.youtube}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicTwitter">
             <Form.Label>Twitter</Form.Label>
@@ -99,7 +129,11 @@ const UpdateMedia = (props: ModalProps) => {
               name='twitter'
               onChange={handleOnChange}
               type="text"
-              placeholder="Twitter link" />
+              placeholder="Twitter link"
+            />
+            {
+              error?.twitter ? <Alert className="mt-2" variant='danger'>{error.twitter}</Alert> : null
+            }
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -109,8 +143,8 @@ const UpdateMedia = (props: ModalProps) => {
             Close
         </Button>
           {
-            loading ?
-              <Button variant="primary" type="submit" disabled>
+            isLoading ?
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"

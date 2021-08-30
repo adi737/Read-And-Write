@@ -3,7 +3,7 @@ import { composeWithDevTools } from "redux-devtools-extension";
 import thunkMiddleware from "redux-thunk";
 import rootReducer from "reducers";
 import setAuthToken from "helpers/setAuthToken";
-import { HotModule, State } from "interfaces";
+import { HotModule } from "interfaces";
 
 export default function configureStore(preloadedState: {}) {
   const middlewares = [thunkMiddleware];
@@ -25,9 +25,9 @@ export default function configureStore(preloadedState: {}) {
     currentState = store.getState();
 
     // if the token changes set the value in localStorage and axios headers
-    if ((previousState as State).user.token !== (currentState as State).user.token) {
-      const token = (currentState as State).user.token;
-      const userID = (currentState as State).user.userID;
+    if ((previousState as any).user.token !== (currentState as any).user.token) {
+      const token = (currentState as any).user.token;
+      const userID = (currentState as any).user.userID;
       setAuthToken({ token, userID });
     }
   });

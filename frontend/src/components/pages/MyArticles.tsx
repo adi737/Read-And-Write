@@ -1,85 +1,84 @@
-import React, { useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { getYourArticles, cleanArticleState, deleteArticle } from 'actions/article.action';
+import React, { useState } from 'react';
 import Loader from 'helpers/Loader';
-import FileUpload from 'components/utils/FileUpload';
-import FileDelete from 'components/utils/FileDelete';
 import { Button, Col, Container, ListGroup, Row } from 'react-bootstrap';
-import { State } from 'interfaces';
-
+import api from 'helpers/api';
+import { useQuery } from 'react-query';
+import CreateArticle from 'components/forms/CreateArticle';
+import { MyArticle } from 'components/utils/MyArticle';
 
 
 const MyArticles = () => {
-  const articles = useSelector((state: State) => state.article.articles);
-  const loading = useSelector((state: State) => state.article.loading);
+  const [showCreateArticle, setShowCreateArticle] = useState(false);
 
-  const dispatch = useDispatch();
+  const getArticles = async () => {
+    const res = await api.get('/article');
+    const data = await res.data;
+    return data;
+  }
 
-  useEffect(() => {
-    dispatch(getYourArticles());
+  const { data: articles, isLoading } = useQuery('myArticles', getArticles, {
+    staleTime: Infinity,
+    cacheTime: Infinity
+  });
 
-    return () => {
-      dispatch(cleanArticleState());
-    }
-  }, [dispatch]);
-
-
-  const handleDeleteArticle = useCallback(id => {
-    if (window.confirm('Are you sure you want to delete the article?'))
-      dispatch(deleteArticle(id));
-  }, [dispatch]);
-
-  return loading ?
+  return isLoading ?
     <Loader />
     :
     articles.length === 0 ?
       <>
         <p className='text-center mt-4 display-4'>No article has been added</p>
-        <Link className="text-decoration-none" to="createArticle">
-          <Button className="d-block mx-auto my-3">Create article</Button>
-        </Link>
+        <Button
+          onClick={() => setShowCreateArticle(true)}
+          className="d-block mx-auto my-3"
+        >
+          Create article
+        </Button>
+        {
+          showCreateArticle ?
+            <CreateArticle
+              show={showCreateArticle}
+              onHide={() => setShowCreateArticle(false)}
+            />
+            : null
+        }
+        <CreateArticle
+          show={showCreateArticle}
+          onHide={() => setShowCreateArticle(false)}
+        />
       </>
       :
       <Container className='my-3'>
         <Row>
           <Col md={{ span: 8, offset: 2 }}>
-            <Link className="text-decoration-none" to="createArticle">
-              <Button size='lg' className="d-block mx-auto my-2">Create article</Button>
-            </Link>
-            <ListGroup>
+            <Button
+              size='lg'
+              className="d-block mx-auto my-2"
+              onClick={() => setShowCreateArticle(true)}
+            >
+              Create article
+            </Button>
+            {
+              showCreateArticle ?
+                <CreateArticle
+                  show={showCreateArticle}
+                  onHide={() => setShowCreateArticle(false)}
+                />
+                : null
+            }
+            <ListGroup >
               {
                 articles.map(({ _id: id, topic, picture }) =>
-                  <ListGroup.Item key={id} className='position-relative pt-3'>
-                    <Link className="text-decoration-none" to={`/updateArticle/${id}`}>
-                      <span className='h5'>
-                        {topic}
-                      </span> <i className="far fa-edit"></i>
-                    </Link>
-                    {
-                      picture.length === 0 ?
-                        <>
-                          <small className='mt-1 d-block'>Add file</small>
-                          <FileUpload id={id} />
-                        </>
-                        :
-                        <FileDelete articleId={id} pictureId={picture[0]._id} imgName={picture[0].imgName} />
-                    }
-                    <Button
-                      onClick={() => handleDeleteArticle(id)}
-                      variant='custom'
-                      className='position-absolute'
-                      size='sm'
-                    >
-                      <i className="far fa-trash-alt"></i> Delete
-                </Button>
-                  </ListGroup.Item>
-                )
+                  <MyArticle
+                    key={id}
+                    id={id}
+                    topic={topic}
+                    picture={picture}
+                  />)
               }
             </ListGroup>
           </Col>
         </Row>
-      </Container>
+      </Container >
 }
 
 export default MyArticles;

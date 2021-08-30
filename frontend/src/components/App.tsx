@@ -6,6 +6,8 @@ import Navigation from 'components/layouts/Navigation';
 import { checkIfLogged } from 'actions/user.action';
 import Loader from 'helpers/Loader';
 import { State } from 'interfaces';
+import { QueryClientProvider, QueryClient } from 'react-query';
+// import { ReactQueryDevtools } from 'react-query/devtools'
 
 function App() {
   const dispatch = useDispatch();
@@ -15,17 +17,22 @@ function App() {
     dispatch(checkIfLogged())
   }, [dispatch])
 
+  const queryClient = new QueryClient()
+
   return loading ?
     <Loader />
     :
-    <Router>
-      <header className='header'>
-        <Navigation />
-      </header>
-      <main className='main'>
-        <Content />
-      </main>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <header className='header'>
+          <Navigation />
+        </header>
+        <main className='main'>
+          <Content />
+        </main>
+      </Router>
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+    </QueryClientProvider>
 }
 
 export default App;

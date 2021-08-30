@@ -1,7 +1,9 @@
-import { dislikeArticle, likeArticle } from 'actions/article.action';
+import api from 'helpers/api';
 import { State } from 'interfaces';
-import React, { useCallback, useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useEffect, useRef } from 'react'
+import { Button, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 
 interface LikeProps {
@@ -16,11 +18,11 @@ interface LikeProps {
 }
 
 const Like: React.FC<LikeProps> = ({ likes, dislikes }) => {
-  const likeRef = useRef<HTMLDivElement>(null);
-  const dislikeRef = useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch();
+  const likeRef = useRef<HTMLButtonElement>(null);
+  const dislikeRef = useRef<HTMLButtonElement>(null);
   const { id } = useParams<{ id: string }>();
   const userID = useSelector((state: State) => state.user.userID);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (likes.length !== 0) {
@@ -50,34 +52,82 @@ const Like: React.FC<LikeProps> = ({ likes, dislikes }) => {
   }, [dislikes, userID]);
 
 
-  const like = useCallback(() => {
-    dispatch(likeArticle(id));
-  }, [dispatch, id]);
+  const likeArticle = async () => {
+    const { data } = await api.post(`/article/like/${id}`);
+    return data;
+  }
 
-  const dislike = useCallback(() => {
-    dispatch(dislikeArticle(id));
-  }, [dispatch, id]);
+  const { mutate: like, isLoading: likeArticleLoading } = useMutation(likeArticle, {
+    onSuccess(updatedArticle) {
+      queryClient.setQueryData(['article', id], updatedArticle);
+    }
+  })
+
+  const dislikeArticle = async () => {
+    const { data } = await api.post(`/article/dislike/${id}`);
+    return data;
+  }
+
+  const { mutate: dislike, isLoading: dislikeArticleLoading } = useMutation(dislikeArticle, {
+    onSuccess(updatedArticle) {
+      queryClient.setQueryData(['article', id], updatedArticle);
+    }
+  })
 
   return (
     <div className='d-flex justify-content-center mb-3 text-white text-center' >
-      <div
-        ref={likeRef}
-        style={{ width: '60px', fontSize: '20px' }}
-        className='bg-secondary like p-2 mr-1 rounded user-select-none'
-        onClick={like}
-      >
-        <p className='m-0'>{likes ? likes.length : ''}</p>
-        <i className="far fa-thumbs-up"></i>
-      </div>
-      <div
-        ref={dislikeRef}
-        style={{ width: '60px', fontSize: '20px' }}
-        className='bg-secondary dislike p-2 ml-1 rounded user-select-none'
-        onClick={dislike}
-      >
-        <p className='m-0'>{dislikes ? dislikes.length : ''}</p>
-        <i className="far fa-thumbs-down"></i>
-      </div>
+      {
+        likeArticleLoading ?
+          <Button
+            ref={likeRef}
+            style={{ width: '60px', fontSize: '20px' }}
+            className='bg-secondary p-2 mr-1 rounded user-select-none'
+            disabled
+          >
+            <Spinner
+              as="span"
+              animation="grow"
+              role="status"
+              aria-hidden="true"
+            />
+          </Button>
+          :
+          <Button
+            ref={likeRef}
+            style={{ width: '60px', fontSize: '20px' }}
+            className='bg-secondary p-2 mr-1 rounded user-select-none'
+            onClick={() => like()}
+          >
+            <p className='m-0'>{likes ? likes.length : ''}</p>
+            <i className="far fa-thumbs-up"></i>
+          </Button>
+      }
+      {
+        dislikeArticleLoading ?
+          <Button
+            ref={dislikeRef}
+            style={{ width: '60px', fontSize: '20px' }}
+            className='bg-secondary p-2 ml-1 rounded user-select-none'
+            disabled
+          >
+            <Spinner
+              as="span"
+              animation="grow"
+              role="status"
+              aria-hidden="true"
+            />
+          </Button>
+          :
+          <Button
+            ref={dislikeRef}
+            style={{ width: '60px', fontSize: '20px' }}
+            className='bg-secondary p-2 ml-1 rounded user-select-none'
+            onClick={() => dislike()}
+          >
+            <p className='m-0'>{dislikes ? dislikes.length : ''}</p>
+            <i className="far fa-thumbs-down"></i>
+          </Button>
+      }
     </div >
   );
 }

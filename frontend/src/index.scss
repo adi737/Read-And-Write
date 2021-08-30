@@ -7,22 +7,6 @@
   z-index: 1051;
 }
 
-.like {
-  cursor: pointer;
-  opacity: .9;
-  &:hover {
-    opacity: 1;
-  } 
-}
-
-.dislike {
-  cursor: pointer;
-  opacity: .9;
-  &:hover {
-    opacity: 1;
-  }
-}
-
 .btn-my, .btn-custom {
   font-size: 13px !important;
   padding: 0 5px !important;
@@ -114,4 +98,12 @@ input[type=file] {
 
 .media > a {
   font-size: 27px;
+}
+
+.link {
+  color: #007bff;
+  cursor: pointer;
+  &:hover {
+    color: #0056b3;
+  }
 }

@@ -1,26 +1,21 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getArticles, cleanArticleState } from 'actions/article.action';
+import React from 'react';
 import ArticleIcon from 'components/utils/ArticleIcon';
 import Loader from 'helpers/Loader';
 import { Col, Container, Row } from 'react-bootstrap';
-import { State } from 'interfaces';
+import { useQuery } from 'react-query';
+import api from 'helpers/api';
 
 const Articles = () => {
-  const articles = useSelector((state: State) => state.article.articles);
-  const loading = useSelector((state: State) => state.article.loading);
-  const dispatch = useDispatch();
+  const getArticles = async () => {
+    const res = await api.get('/article/articles');
+    const data = await res.data;
+    return data;
+  }
 
-  useEffect(() => {
-    dispatch(getArticles());
-
-    return () => {
-      dispatch(cleanArticleState());
-    }
-  }, [dispatch])
+  const { data: articles, isLoading } = useQuery('articles', getArticles);
 
   return (
-    loading ?
+    isLoading ?
       <Loader />
       :
       articles.length === 0 ?

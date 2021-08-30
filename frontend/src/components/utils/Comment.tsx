@@ -1,11 +1,11 @@
-import { dislikeArticleComment, likeArticleComment, removeCommentFromArticle } from 'actions/article.action';
+import api from 'helpers/api';
 import { State } from 'interfaces';
-import React, { useCallback, useEffect, useRef } from 'react'
-import { Button, Media, Image } from 'react-bootstrap';
+import React, { useEffect, useRef } from 'react'
+import { Button, Media, Image, Spinner } from 'react-bootstrap';
 import Moment from 'react-moment';
-import { useDispatch, useSelector } from 'react-redux';
+import { useMutation, useQueryClient } from 'react-query';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
 
 interface CommentProps {
   comment: {
@@ -30,10 +30,10 @@ interface CommentProps {
 
 const Comment: React.FC<CommentProps> = ({ comment }) => {
   const userID = useSelector((state: State) => state.user.userID);
-  const dispatch = useDispatch();
   const { id } = useParams<{ id: string }>();
-  const likeRef = useRef<HTMLDivElement>(null);
-  const dislikeRef = useRef<HTMLDivElement>(null);
+  const likeRef = useRef<HTMLButtonElement>(null);
+  const dislikeRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const likes = comment.likes;
@@ -67,29 +67,63 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
 
   }, [comment.dislikes, userID]);
 
-  const handleRemoveComment = useCallback((commentId) => {
-    if (window.confirm('Are you sure you want to delete this article?')) {
-      const uuid = uuidv4();
-      dispatch(removeCommentFromArticle(id, commentId, uuid));
+  const removeCommentFromArticle = async (articleId: string, commentId: string) => {
+    const { data } = await api.delete(`/article/comment/${articleId}/${commentId}`);
+    return data;
+  }
+
+  const { mutate: removeComment, isLoading: removeCommentLoading } = useMutation(() => removeCommentFromArticle(id, comment._id), {
+    onSuccess(updatedArticle) {
+      queryClient.setQueryData(['article', id], updatedArticle);
     }
-  }, [dispatch, id]);
+  });
 
-  const likeComment = useCallback((commentId) => {
-    dispatch(likeArticleComment(id, commentId));
-  }, [dispatch, id]);
+  const handleRemoveComment = () => {
+    if (window.confirm('Are you sure you want to delete this article?')) {
+      removeComment()
+    }
+  }
 
+  const likeComment = async (articleId: string, commentId: string) => {
+    const { data } = await api.post(`/article/comment/like/${articleId}/${commentId}`);
+    return data;
+  }
 
-  const dislikeComment = useCallback((commentId) => {
-    dispatch(dislikeArticleComment(id, commentId));
-  }, [dispatch, id]);
+  const { mutate: like, isLoading: likeCommentLoading } = useMutation(() => likeComment(id, comment._id), {
+    onSuccess(updatedArticle) {
+      queryClient.setQueryData(['article', id], updatedArticle);
+    }
+  });
+
+  const dislikeComment = async (articleId: string, commentId: string) => {
+    const { data } = await api.post(`/article/comment/dislike/${articleId}/${commentId}`);
+    return data;
+  }
+
+  const { mutate: dislike, isLoading: dislikeCommentLoading } = useMutation(() => dislikeComment(id, comment._id), {
+    onSuccess(updatedArticle) {
+      queryClient.setQueryData(['article', id], updatedArticle);
+    }
+  });
 
   return (
     <article className='border my-4 position-relative'>
       {
         comment.userID?._id === userID ?
-          <Button variant='custom' className='position-absolute' size='sm' onClick={() => handleRemoveComment(comment._id)}>
-            <i className="far fa-trash-alt"></i> Delete
-          </Button>
+          removeCommentLoading ?
+            <Button variant="custom" className='position-absolute' size='sm' disabled>
+              <Spinner
+                as="span"
+                animation="grow"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              /> loading...
+            </Button>
+            :
+            <Button variant='custom' className='position-absolute' size='sm' onClick={handleRemoveComment}>
+              <i className="far fa-trash-alt"></i> Delete
+            </Button>
           :
           null
       }
@@ -124,22 +158,49 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
           </Moment>
         </small>
         <div className='d-flex text-center text-white'>
-          <div
-            ref={likeRef}
-            onClick={() => likeComment(comment._id)}
-            className='bg-secondary mr-1 px-2 like user-select-none'
-          >
-            <p className='m-0 '>{comment.likes.length}</p>
-            <i className="far fa-thumbs-up"></i>
-          </div>
-          <div
-            ref={dislikeRef}
-            onClick={() => dislikeComment(comment._id)}
-            className='bg-secondary px-2 dislike user-select-none'
-          >
-            <p className='m-0'>{comment.dislikes.length}</p>
-            <i className="far fa-thumbs-down"></i>
-          </div>
+          {
+            likeCommentLoading ?
+              <Button className='bg-secondary mr-1 px-2 user-select-none' ref={likeRef} disabled>
+                <Spinner
+                  as="span"
+                  animation="grow"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />
+              </Button>
+              :
+              <Button
+                ref={likeRef}
+                onClick={() => like()}
+                className='bg-secondary mr-1 px-2 user-select-none'
+              >
+                <p className='m-0 '>{comment.likes.length}</p>
+                <i className="far fa-thumbs-up"></i>
+              </Button>
+          }
+          {
+            dislikeCommentLoading ?
+              <Button className='bg-secondary px-2 user-select-none' ref={dislikeRef} disabled>
+                <Spinner
+                  as="span"
+                  animation="grow"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />
+              </Button>
+              :
+              <Button
+                ref={dislikeRef}
+                onClick={() => dislike()}
+                className='bg-secondary px-2 user-select-none'
+              >
+                <p className='m-0'>{comment.dislikes.length}</p>
+                <i className="far fa-thumbs-down"></i>
+              </Button>
+
+          }
         </div>
       </footer>
     </article>

@@ -1,33 +1,42 @@
-import React, { useCallback, useState } from 'react'
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { useHistory } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
-import { changePassword } from 'actions/user.action';
+import React, { useState } from 'react'
+import { Alert, Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { ChangePasswordFormState } from 'interfaces';
+import api from 'helpers/api';
+import { useMutation } from 'react-query';
+import { toErrorMap } from 'helpers/toErrorMap';
 
 const ChangePassword = () => {
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ChangePasswordFormState>({});
+  const [error, setError] = useState<any>(null);
+  const [success, setSuccess] = useState(false);
 
-  const history = useHistory();
-
-  const dispatch = useDispatch();
-
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const changePassword = async () => {
+    await api.patch(`/user/change`, formData);
+  }
+
+  const { mutate, isLoading } = useMutation(changePassword, {
+    onSuccess() {
+      setError(null);
+      setSuccess(true);
+    },
+    onError(err: any) {
+      setSuccess(false);
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setLoading(true);
-    const id = uuidv4();
-    dispatch(changePassword(formData, id, history, setLoading));
-  }, [dispatch, formData, history]);
+    mutate();
+  }
 
   return (
     <Container className='mt-5 text-center'>
@@ -41,7 +50,11 @@ const ChangePassword = () => {
                 required
                 minLength={8}
                 type="password"
-                placeholder="Password" />
+                placeholder="Password"
+              />
+              {
+                error?.password ? <Alert className="mt-2" variant='danger'>{error.password}</Alert> : null
+              }
             </Form.Group>
             <Form.Group controlId="formBasicNewPassword">
               <Form.Control
@@ -50,7 +63,11 @@ const ChangePassword = () => {
                 required
                 minLength={8}
                 type="password"
-                placeholder="New password" />
+                placeholder="New password"
+              />
+              {
+                error?.newPassword ? <Alert className="mt-2" variant='danger'>{error.newPassword}</Alert> : null
+              }
             </Form.Group>
             <Form.Group controlId="formBasicNewRepassword">
               <Form.Control
@@ -59,11 +76,18 @@ const ChangePassword = () => {
                 required
                 minLength={8}
                 type="password"
-                placeholder="Repeat new password" />
+                placeholder="Repeat new password"
+              />
+              {
+                error?.newRepassword ? <Alert className="mt-2" variant='danger'>{error.newRepassword}</Alert> : null
+              }
+              {
+                success ? <Alert className="mt-2" variant='success'>Password has been changed</Alert> : null
+              }
             </Form.Group>
             {
-              loading ?
-                <Button block variant="primary" type="submit" disabled>
+              isLoading ?
+                <Button block variant="primary" disabled>
                   <Spinner
                     as="span"
                     animation="grow"

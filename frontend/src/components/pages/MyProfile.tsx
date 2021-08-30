@@ -1,17 +1,18 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getYourProfile, cleanProfileState, removeExperience, removeEducation, deleteProfile } from 'actions/profile.action';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import Loader from 'helpers/Loader';
-import Moment from 'react-moment';
-import { Link } from 'react-router-dom';
-import { deleteAccount } from 'actions/user.action';
-import { Col, Container, Nav, Row, Tab, Image, Button } from 'react-bootstrap';
+import { Col, Container, Nav, Row, Tab, Image, Button, Spinner } from 'react-bootstrap';
 import UpdateStatus from 'components/forms/UpdateStatus';
 import UpdateSkills from 'components/forms/UpdateSkills';
 import UpdateMedia from 'components/forms/UpdateMedia';
 import AddExperience from 'components/forms/AddExperience';
 import AddEducation from 'components/forms/AddEducation';
-import { State } from 'interfaces';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import api from 'helpers/api';
+import { Experience } from 'components/utils/Experience';
+import { Education } from 'components/utils/Education';
+import CreateProfile from 'components/forms/CreateProfile';
+import { DELETE_ACCOUNT } from 'actions/types';
 
 const MyProfile = () => {
   const [showStatus, setShowStatus] = useState(false);
@@ -19,58 +20,87 @@ const MyProfile = () => {
   const [showMedia, setShowMedia] = useState(false);
   const [showExperience, setShowExperience] = useState(false);
   const [showEducation, setShowEducation] = useState(false);
-
-  const profile = useSelector((state: State) => state.profile.profile);
-  const loading = useSelector((state: State) => state.profile.profile.loading);
-
-  const { userID, status, company, location, skills, experience, education, youtube, twitter, facebook, linkedin, instagram } = profile;
-
+  const [showProfile, setShowProfile] = useState(false);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(getYourProfile());
-
-    return () => {
-      dispatch(cleanProfileState());
+  const queryClient = useQueryClient();
+  const { mutate: deleteAccount, isLoading: deleteAccountLoading } = useMutation(() => api.delete('/user'), {
+    onSuccess() {
+      dispatch({
+        type: DELETE_ACCOUNT
+      });
     }
-  }, [dispatch]);
+  });
+  const { mutate: deleteProfile, isLoading: deleteProfileLoading } = useMutation(() =>
+    api.delete('/profile').then(res => res.data), {
+    onSuccess(deletedProfile) {
+      const profilesCache = queryClient.getQueryData('profiles');
 
-  const handleRemoveExperience = useCallback(id => {
-    if (window.confirm('Are you sure you want to delete the experience?'))
-      dispatch(removeExperience(id))
-  }, [dispatch]);
+      if (profilesCache) {
+        queryClient.setQueryData('profiles', (profiles: any) => profiles.filter(profile => profile._id !== deletedProfile._id));
+      }
 
-  const handleRemoveEducation = useCallback(id => {
-    if (window.confirm('Are you sure you want to delete the education?'))
-      dispatch(removeEducation(id))
-  }, [dispatch]);
+      queryClient.setQueryData('myProfile', null);
+    }
+  });
 
-  const handleDeleteProfile = useCallback(() => {
+  const getYourProfile = async () => {
+    const { data } = await api.get('/profile');
+    return data;
+  }
+
+  const { data: profile, isLoading } = useQuery('myProfile', getYourProfile, {
+    staleTime: Infinity,
+    cacheTime: Infinity
+  });
+
+  const handleDeleteProfile = () => {
     if (window.confirm('Are you sure you want to delete the profile?'))
-      dispatch(deleteProfile())
-  }, [dispatch]);
+      deleteProfile();
+  }
 
-  const handleDeleteAccount = useCallback(() => {
+  const handleDeleteAccount = () => {
     if (window.confirm('Are you sure you want to delete the account?'))
-      dispatch(deleteAccount())
-  }, [dispatch]);
+      deleteAccount();
+  }
 
   return (
-    loading ?
+    isLoading ?
       <Loader />
       :
-      Object.keys(profile).length === 1 && profile.constructor === Object ?
+      !profile ?
         <>
           <p className='text-center mt-4 display-4 mb-1'>
             You do not have a profile yet
           </p>
-          <Button size='lg' className='d-block mx-auto mb-4'>
-            <Link className='text-reset text-decoration-none' to='createProfile'>
-              Create profile
-            </Link>
+          <Button
+            size='lg'
+            className='d-block mx-auto mb-4'
+            onClick={() => setShowProfile(true)}
+          >
+            Create profile
           </Button>
+          {
+            showProfile ?
+              <CreateProfile
+                show={showProfile}
+                onHide={() => setShowProfile(false)}
+              /> : null
+          }
           <h2 className='text-center'>Do you want to delete your account? Then your profile and your articles will also be deleted</h2>
-          <Button variant='danger' className='d-block mx-auto mb-4' onClick={handleDeleteAccount}>Delete account</Button>
+          {
+            deleteAccountLoading ?
+              <Button variant='danger' className='d-block mx-auto mb-4' disabled>
+                <Spinner
+                  as="span"
+                  animation="grow"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                /> loading...
+              </Button>
+              :
+              <Button variant='danger' className='d-block mx-auto mb-4' onClick={handleDeleteAccount}>Delete account</Button>
+          }
         </>
         :
         <Container className='my-3'>
@@ -95,23 +125,41 @@ const MyProfile = () => {
                       <Row sm={3}>
                         <Col sm={4} className="border py-3">
                           <article className="text-center">
-                            <p className="m-0 lead font-weight-bold">{userID && userID.nick}</p>
+                            <p className="m-0 lead font-weight-bold">{profile.userID && profile.userID.nick}</p>
                             <Image
                               roundedCircle
-                              src={userID && userID.avatar}
+                              src={profile.userID && profile.userID.avatar}
                               alt="avatar"
                               width={60}
                               height={60}
                             />
-                            <Button
-                              variant='outline-danger'
-                              size='sm'
-                              className='d-block mx-auto mt-2'
-                              onClick={() =>
-                                handleDeleteProfile()}
-                            >
-                              Delete Profile
-                                    </Button>
+                            {
+                              deleteProfileLoading ?
+                                <Button
+                                  variant='outline-danger'
+                                  size='sm'
+                                  className='d-block mx-auto mt-2'
+                                  disabled
+                                >
+                                  <Spinner
+                                    as="span"
+                                    animation="grow"
+                                    size="sm"
+                                    role="status"
+                                    aria-hidden="true"
+                                  /> loading...
+                                </Button>
+                                :
+                                <Button
+                                  variant='outline-danger'
+                                  size='sm'
+                                  className='d-block mx-auto mt-2'
+                                  onClick={() =>
+                                    handleDeleteProfile()}
+                                >
+                                  Delete Profile
+                                </Button>
+                            }
                           </article>
                         </Col>
                         <Col className="border position-relative py-3">
@@ -122,15 +170,18 @@ const MyProfile = () => {
                           >
                             <i className="far fa-edit"></i>
                           </Button>
-                          <UpdateStatus
-                            show={showStatus}
-                            onHide={() => setShowStatus(false)}
-                          />
+                          {
+                            showStatus ?
+                              <UpdateStatus
+                                show={showStatus}
+                                onHide={() => setShowStatus(false)}
+                              /> : null
+                          }
                           <article>
                             <h4 className="mb-1">Status: </h4>
-                            <i className="d-block mb-1">{status}</i>
-                            <p className="mb-1">{company}</p>
-                            <p className="m-0 text-muted font-italic">{location}</p>
+                            <i className="d-block mb-1">{profile.status}</i>
+                            <p className="mb-1">{profile.company}</p>
+                            <p className="m-0 text-muted font-italic">{profile.location}</p>
                           </article>
                         </Col>
                         <Col className="border position-relative py-3">
@@ -141,16 +192,19 @@ const MyProfile = () => {
                           >
                             <i className="far fa-edit"></i>
                           </Button>
-                          <UpdateSkills
-                            show={showSkills}
-                            onHide={() => setShowSkills(false)}
-                          />
+                          {
+                            showSkills ?
+                              <UpdateSkills
+                                show={showSkills}
+                                onHide={() => setShowSkills(false)}
+                              /> : null
+                          }
                           <article>
                             <h4 className="m-0">Skills: </h4>
                             <ul className="pl-4">
                               {
-                                skills ?
-                                  skills.map((skill, index) =>
+                                profile.skills ?
+                                  profile.skills.map((skill, index) =>
                                     <li key={`${skill}${index}`}>{skill}</li>
                                   )
                                   :
@@ -169,24 +223,27 @@ const MyProfile = () => {
                           >
                             <i className="far fa-edit"></i>
                           </Button>
-                          <UpdateMedia
-                            show={showMedia}
-                            onHide={() => setShowMedia(false)}
-                          />
+                          {
+                            showMedia ?
+                              <UpdateMedia
+                                show={showMedia}
+                                onHide={() => setShowMedia(false)}
+                              /> : null
+                          }
                           <article className="text-center d-flex justify-content-around media">
-                            <a rel="noopener noreferrer" target="_blank" href={linkedin}>
+                            <a rel="noopener noreferrer" target="_blank" href={profile.linkedin}>
                               <i className="user-select-none fab fa-linkedin"></i>
                             </a>
-                            <a rel="noopener noreferrer" target="_blank" href={facebook}>
+                            <a rel="noopener noreferrer" target="_blank" href={profile.facebook}>
                               <i className="user-select-none fab fa-facebook-square"></i>
                             </a>
-                            <a rel="noopener noreferrer" target="_blank" href={instagram}>
+                            <a rel="noopener noreferrer" target="_blank" href={profile.instagram}>
                               <i className="user-select-none fab fa-instagram-square"></i>
                             </a>
-                            <a rel="noopener noreferrer" target="_blank" href={youtube}>
+                            <a rel="noopener noreferrer" target="_blank" href={profile.youtube}>
                               <i className="user-select-none fab fa-youtube"></i>
                             </a>
-                            <a rel="noopener noreferrer" target="_blank" href={twitter}>
+                            <a rel="noopener noreferrer" target="_blank" href={profile.twitter}>
                               <i className="user-select-none fab fa-twitter"></i>
                             </a>
                           </article>
@@ -204,48 +261,19 @@ const MyProfile = () => {
                             >
                               Add Experience
                             </Button>
-                            <AddExperience
-                              show={showExperience}
-                              onHide={() => setShowExperience(false)}
-                            />
+                            {
+                              showExperience ?
+                                <AddExperience
+                                  show={showExperience}
+                                  onHide={() => setShowExperience(false)}
+                                />
+                                : null
+                            }
                             <h4 className='mb-2'>Experience:</h4>
                             {
-                              experience ?
-                                experience.map(exp =>
-                                  <div key={exp._id} className='mb-5'>
-                                    <p className='mb-1'>{exp.position}</p>
-                                    <p className='mb-1'>{exp.company}</p>
-                                    <p className='mb-1'>{exp.location}</p>
-                                    <p className='font-weight-bold m-0'>
-                                      Description:
-                                    </p>
-                                    <p className='mb-2'>{exp.description}</p>
-                                    <small>
-                                      <Moment format='YYYY.MM.DD'>
-                                        {exp.from}
-                                      </Moment>
-                                  -
-                                  {
-                                        exp.current ?
-                                          'now' :
-                                          <Moment format='YYYY.MM.DD'>
-                                            {exp.to}
-                                          </Moment>
-                                      }
-                                    </small>
-                                    <Button
-                                      variant='outline-danger'
-                                      size='sm'
-                                      className='d-block'
-                                      onClick={() =>
-                                        handleRemoveExperience(exp._id)}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                )
-                                :
-                                ''
+                              profile.experience ?
+                                profile.experience.map(exp => <Experience key={exp._id} exp={exp} />)
+                                : ''
                             }
                           </article>
                         </Col>
@@ -258,48 +286,18 @@ const MyProfile = () => {
                             >
                               Add Education
                             </Button>
-                            <AddEducation
-                              show={showEducation}
-                              onHide={() => setShowEducation(false)}
-                            />
+                            {
+                              showEducation ?
+                                <AddEducation
+                                  show={showEducation}
+                                  onHide={() => setShowEducation(false)}
+                                /> : null
+                            }
                             <h4 className='mb-2'>Education:</h4>
                             {
-                              education ?
-                                education.map(edu =>
-                                  <div key={edu._id} className='mb-5'>
-                                    <p className='mb-1'>{edu.school}</p>
-                                    <p className='mb-1'>{edu.fieldofstudy}</p>
-                                    <p className='mb-1'>{edu.degree}</p>
-                                    <p className='font-weight-bold m-0'>
-                                      Description:
-                                </p>
-                                    <p className='mb-2'>{edu.description}</p>
-                                    <small>
-                                      <Moment format='YYYY.MM.DD'>
-                                        {edu.from}
-                                      </Moment>
-                                      -
-                                      {
-                                        edu.current ?
-                                          'now' :
-                                          <Moment format='YYYY.MM.DD'>
-                                            {edu.to}
-                                          </Moment>
-                                      }
-                                    </small>
-                                    <Button
-                                      variant='outline-danger'
-                                      size='sm'
-                                      className='d-block'
-                                      onClick={() =>
-                                        handleRemoveEducation(edu._id)}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                )
-                                :
-                                ''
+                              profile.education ?
+                                profile.education.map(edu => <Education key={edu._id} edu={edu} />)
+                                : ''
                             }
                           </article>
                         </Col>

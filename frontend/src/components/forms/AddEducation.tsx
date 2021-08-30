@@ -1,30 +1,45 @@
-import { addEducation } from 'actions/profile.action';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
 import { EducationFormState } from 'interfaces';
-import React, { useCallback, useState } from 'react';
-import { Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
 
 const AddEducation = (props: ModalProps) => {
   const [formData, setFormData] = useState<EducationFormState>({});
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const queryClient = useQueryClient();
 
-  const dispatch = useDispatch();
 
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
-    e.preventDefault();
-    setLoading(true);
+  const addEducation = async () => {
+    const { data } = await api.post('/profile/education', formData);
+    return data;
+  }
 
-    const id = uuidv4();
-    dispatch(addEducation(formData, setFormData, id, props.onHide, setLoading));
-  }, [dispatch, formData, props.onHide]);
+  const { mutate, isLoading } = useMutation(addEducation, {
+    onSuccess(updatedProfile) {
+      queryClient.setQueryData(['myProfile',], updatedProfile);
+      props.onHide();
+    },
+    onError(err: any) {
+      console.log(err.response.data.errors)
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    mutate();
+  }
+
   return (
     <Modal
       {...props}
@@ -49,6 +64,9 @@ const AddEducation = (props: ModalProps) => {
               type="text"
               placeholder="Your school"
             />
+            {
+              error?.school ? <Alert className="mt-2" variant='danger'>{error.school}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicField">
             <Form.Label>Field of study</Form.Label>
@@ -59,6 +77,9 @@ const AddEducation = (props: ModalProps) => {
               type="text"
               placeholder="Field of your study"
             />
+            {
+              error?.fieldOfStudy ? <Alert className="mt-2" variant='danger'>{error.fieldOfStudy}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicDegree">
             <Form.Label>Degree</Form.Label>
@@ -69,6 +90,9 @@ const AddEducation = (props: ModalProps) => {
               type="text"
               placeholder="Your degree"
             />
+            {
+              error?.degree ? <Alert className="mt-2" variant='danger'>{error.degree}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicFrom">
             <Form.Label>From</Form.Label>
@@ -79,6 +103,9 @@ const AddEducation = (props: ModalProps) => {
               onChange={handleOnChange}
               type='date'
             />
+            {
+              error?.from ? <Alert className="mt-2" variant='danger'>{error.from}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicTo">
             <Form.Label>To</Form.Label>
@@ -88,6 +115,9 @@ const AddEducation = (props: ModalProps) => {
               onChange={handleOnChange}
               type='date'
             />
+            {
+              error?.to ? <Alert className="mt-2" variant='danger'>{error.to}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicTextarea">
             <Form.Label>Description</Form.Label>
@@ -99,6 +129,9 @@ const AddEducation = (props: ModalProps) => {
               onChange={handleOnChange}
               placeholder="Description..."
             />
+            {
+              error?.description ? <Alert className="mt-2" variant='danger'>{error.description}</Alert> : null
+            }
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -108,8 +141,8 @@ const AddEducation = (props: ModalProps) => {
             Close
         </Button>
           {
-            loading ?
-              <Button variant="primary" type="submit" disabled>
+            isLoading ?
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"

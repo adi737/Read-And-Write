@@ -1,32 +1,36 @@
-import { sendLinkToResetPass } from 'actions/user.action';
-import React, { useCallback, useState } from 'react'
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { useHistory } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
+import React, { useState } from 'react'
+import { Alert, Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { useMutation } from 'react-query';
+import { useHistory } from 'react-router';
+
 
 const SendEmail = () => {
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
+  const [error, setError] = useState<any>(null);
+  const { push } = useHistory();
+  const { mutate: sendEmail, isLoading } = useMutation(() => api.post('/user/send', formData), {
+    onSuccess() {
+      push('/resetMessage');
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
 
-  const history = useHistory();
-
-  const dispatch = useDispatch();
-
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setLoading(true);
-    const id = uuidv4();
-    dispatch(sendLinkToResetPass(formData, id, history, setLoading));
-  }, [dispatch, formData, history]);
+    sendEmail();
+  }
 
   return (
     <Container className='mt-5 text-center'>
@@ -41,10 +45,13 @@ const SendEmail = () => {
                 required
                 placeholder="Enter email"
               />
+              {
+                error?.email ? <Alert className="mt-2" variant='danger'>{error.email}</Alert> : null
+              }
             </Form.Group>
             {
-              loading ?
-                <Button block variant="primary" type="submit" disabled>
+              isLoading ?
+                <Button block variant="primary" disabled>
                   <Spinner
                     as="span"
                     animation="grow"

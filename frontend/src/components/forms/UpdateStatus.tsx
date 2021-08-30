@@ -1,30 +1,65 @@
-import { updateProfile } from 'actions/profile.action';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
 import { StatusFormState } from 'interfaces';
-import React, { useCallback, useState } from 'react';
-import { Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
+
 
 const UpdateStatus = (props: ModalProps) => {
   const [formData, setFormData] = useState<StatusFormState>({});
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const myProfile: any = queryClient.getQueryData('myProfile');
 
-  const dispatch = useDispatch();
+  const updateProfile = async () => {
+    const { data } = await api.patch('/profile', formData);
+    return data;
+  }
 
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const { mutate, isLoading } = useMutation(updateProfile, {
+    onSuccess(updatedProfile) {
+      const profilesCache = queryClient.getQueryData('profiles');
+      const profileCache = queryClient.getQueryData(['profile', updatedProfile._id]);
+
+      if (profilesCache) {
+        queryClient.setQueryData('profiles', (profiles: any) =>
+          profiles.map(profile => profile._id === updatedProfile._id ? updatedProfile : profile))
+      }
+
+      if (profileCache) {
+        queryClient.setQueryData(['profile', updatedProfile._id], updatedProfile);
+      }
+
+      queryClient.setQueryData('myProfile', updatedProfile);
+      props.onHide();
+    },
+    onError(err: any) {
+      console.log(err.response.data.errors)
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
-    const id = uuidv4();
-    dispatch(updateProfile(formData, setFormData, id, props.onHide, setLoading));
-  }, [dispatch, formData, props.onHide]);
+    mutate();
+  }
+
+  useEffect(() => {
+    setFormData({
+      status: myProfile.status ?? '',
+      company: myProfile.company ?? '',
+      location: myProfile.location ?? ''
+    });
+  }, [myProfile]);
 
   return (
     <Modal
@@ -48,7 +83,11 @@ const UpdateStatus = (props: ModalProps) => {
               name='status'
               onChange={handleOnChange}
               type="text"
-              placeholder="Your status (e.g. student, seller, intern)" />
+              placeholder="Your status (e.g. student, seller, intern)"
+            />
+            {
+              error?.status ? <Alert className="mt-2" variant='danger'>{error.status}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicCompany">
             <Form.Label>Name</Form.Label>
@@ -57,7 +96,11 @@ const UpdateStatus = (props: ModalProps) => {
               name='company'
               onChange={handleOnChange}
               type="text"
-              placeholder="Name of e.g. company, school" />
+              placeholder="Name of e.g. company, school"
+            />
+            {
+              error?.company ? <Alert className="mt-2" variant='danger'>{error.company}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicLocation">
             <Form.Label>Location</Form.Label>
@@ -66,7 +109,11 @@ const UpdateStatus = (props: ModalProps) => {
               name='location'
               onChange={handleOnChange}
               type="text"
-              placeholder="Location of e.g. company, school" />
+              placeholder="Location of e.g. company, school"
+            />
+            {
+              error?.location ? <Alert className="mt-2" variant='danger'>{error.location}</Alert> : null
+            }
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -74,10 +121,10 @@ const UpdateStatus = (props: ModalProps) => {
             onClick={props.onHide}
             variant="secondary">
             Close
-        </Button>
+          </Button>
           {
-            loading ?
-              <Button variant="primary" type="submit" disabled>
+            isLoading ?
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"

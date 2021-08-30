@@ -15,7 +15,7 @@ APP_URL - Root URL to your app.
 
 Installs dependencies required for the application.
 
-### `npm start`
+### `npm run dev`
 
 Runs the development server.
 

@@ -1,70 +1,87 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { getArticleById, cleanArticleState, updateArticle } from 'actions/article.action';
-import Loader from 'helpers/Loader';
-import { v4 as uuidv4 } from 'uuid';
-import { Button, Container, Form, Spinner } from 'react-bootstrap';
-import { ArticleFormState, State } from 'interfaces';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { ArticleFormState } from 'interfaces';
+import { useMutation, useQueryClient } from 'react-query';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
 
-interface UpdateArticleProps {
-  match: {
-    params: {
-      id: string;
-    }
-  }
-  history: {
-    push: Function;
-  }
-}
 
-const UpdateArticle: React.FC<UpdateArticleProps> = ({ match: { params: { id } }, history: { push } }) => {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<ArticleFormState>({});
-
-  const article = useSelector((state: State) => state.article.article);
-  const stateLoading = useSelector((state: State) => state.article.article.loading);
-
-  const { topic, intro, description } = article
-
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(getArticleById(id, push))
-    return () => {
-      dispatch(cleanArticleState());
-    }
-  }, [dispatch, id, push])
+const UpdateArticle = (props: ModalProps) => {
+  const [error, setError] = useState<any>(null);
+  const [formData, setFormData] = useState<ArticleFormState>({
+    topic: '',
+    intro: '',
+    description: ''
+  });
+  const queryClient = useQueryClient();
+  const myArticles: any = queryClient.getQueryData('myArticles');
+  const article = myArticles.find(article => article._id === props.id);
 
   useEffect(() => {
     setFormData({
-      topic,
-      intro,
-      description
+      topic: article.topic,
+      intro: article.intro,
+      description: article.description
     })
-  }, [topic, intro, description])
+  }, [article]);
 
-  const handleOnChange = useCallback(e => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  }, [formData]);
+  }
 
+  const updateArticle = async () => {
+    const res = await api.put(`/article/${props.id}`, formData);
+    const data = await res.data;
+    return data;
+  }
 
-  const handleOnSubmit = useCallback(e => {
+  const { mutate, isLoading: loading } = useMutation(updateArticle, {
+    onSuccess(updatedArticle) {
+      const articlesCache = queryClient.getQueryData('articles');
+      const articleCache = queryClient.getQueryData(['article', props.id]);
+
+      if (articlesCache) {
+        queryClient.setQueryData('articles', (articles: any) =>
+          articles.map(article => article._id === props.id ? updatedArticle : article));
+      }
+
+      if (articleCache) {
+        queryClient.setQueryData(['article', props.id], updatedArticle);
+      }
+
+      queryClient.setQueryData('myArticles', (articles: any) =>
+        articles.map(article => article._id === props.id ? updatedArticle : article));
+
+      props.onHide();
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
-    const uuid = uuidv4();
-    dispatch(updateArticle(id, formData, push, uuid, setLoading));
-  }, [dispatch, id, formData, push]);
+    mutate();
+  }
 
-  return stateLoading ?
-    <Loader />
-    :
-    formData.topic !== undefined ?
-      <Container className='my-3'>
-        <Form onSubmit={handleOnSubmit}>
+  return (
+    <Modal
+      {...props}
+      size="lg"
+      aria-labelledby="contained-modal-title-vcenter"
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title id="contained-modal-title-vcenter">
+          Update article
+          </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={handleOnSubmit}>
+        <Modal.Body>
           <Form.Group controlId="formBasicTopic">
             <Form.Label>Topic</Form.Label>
             <Form.Control
@@ -75,6 +92,9 @@ const UpdateArticle: React.FC<UpdateArticleProps> = ({ match: { params: { id } }
               type="text"
               placeholder="Topic of article"
             />
+            {
+              error?.topic ? <Alert className="mt-2" variant='danger'>{error.topic}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicIntro">
             <Form.Label>Intro</Form.Label>
@@ -86,6 +106,9 @@ const UpdateArticle: React.FC<UpdateArticleProps> = ({ match: { params: { id } }
               type="text"
               placeholder="Intro of article"
             />
+            {
+              error?.intro ? <Alert className="mt-2" variant='danger'>{error.intro}</Alert> : null
+            }
           </Form.Group>
           <Form.Group controlId="formBasicDescription">
             <Form.Label>Description</Form.Label>
@@ -99,10 +122,20 @@ const UpdateArticle: React.FC<UpdateArticleProps> = ({ match: { params: { id } }
               type="text"
               placeholder="Description of article"
             />
+            {
+              error?.description ? <Alert className="mt-2" variant='danger'>{error.description}</Alert> : null
+            }
           </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            onClick={props.onHide}
+            variant="secondary">
+            Close
+            </Button>
           {
             loading ?
-              <Button variant="primary" type="submit" disabled>
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"
@@ -118,10 +151,10 @@ const UpdateArticle: React.FC<UpdateArticleProps> = ({ match: { params: { id } }
                 Update article
               </Button>
           }
-        </Form>
-      </Container>
-      :
-      null
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  )
 }
 
 export default UpdateArticle;

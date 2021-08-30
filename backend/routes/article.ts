@@ -51,7 +51,7 @@ router.get('/:id', checkObjectID('id'), async (req, res) => {
 router.get('/', auth, async (req: RequestExt, res) => {
   const { userID } = req.user!;
   try {
-    const articles = await Article.find({ userID });
+    const articles = await Article.find({ userID }).sort({ date: -1 });
 
     res.json(articles);
   } catch (error) {
@@ -141,7 +141,7 @@ router.put('/:id',
       if (String(article!.userID) !== userID) {
         return res.status(401).json(({
           errors:
-            [{ msg: "you can't edit an article you haven't written" }]
+            [{ param: "article", msg: "you can't edit an article you haven't written" }]
         }));
       }
 
@@ -348,7 +348,7 @@ router.delete('/comment/:articleID/:commentID',
       if (!comment!.userID || comment!.userID.id !== userID) {
         return res.status(401).json(({
           errors:
-            [{ msg: 'you cannot delete a comment you did not write' }]
+            [{ param: 'comment', msg: 'you cannot delete a comment you did not write' }]
         }));
       }
 
@@ -543,7 +543,7 @@ router.post('/upload/:id',
       if (req.files === null) {
         return res.status(400).json(({
           errors:
-            [{ msg: "No file uploaded" }]
+            [{ param: 'file', msg: "No file uploaded" }]
         }));
       }
 
@@ -556,14 +556,14 @@ router.post('/upload/:id',
         && !file.name.includes('.svg')) {
         return res.status(400).json({
           errors:
-            [{ msg: 'Not allowed extension. Use one of these (.jpg | .jpeg | .gif | .png | .svg)' }]
+            [{ param: 'file', msg: 'Not allowed extension. Use one of these (.jpg | .jpeg | .gif | .png | .svg)' }]
         });
       }
 
       if (file.size > 2097152) {
         return res.status(400).json({
           errors:
-            [{ msg: 'The maximum file size is 2MB' }]
+            [{ param: 'file', msg: 'The maximum file size is 2MB' }]
         });
       }
 

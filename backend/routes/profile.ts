@@ -57,10 +57,6 @@ router.get('/', auth, async (req: RequestExt, res) => {
     const profile = await Profile.findOne({ userID })
       .populate('userID', ['nick', 'avatar']);
 
-    if (!profile) {
-      return res.status(400).json({ msg: `Profile does not exist` });
-    }
-
     res.json(profile);
   } catch (error) {
     console.error(error.message);
@@ -151,6 +147,7 @@ router.post('/',
 
       profile = new Profile(dataFields);
       await profile.save();
+      profile = await Profile.findOne({ userID }).populate('userID', ['nick', 'avatar']);
 
       res.json(profile);
     } catch (error) {
@@ -174,13 +171,21 @@ router.patch('/', auth, async (req: RequestExt, res) => {
       return res.status(400).json({ msg: `Profile does not exist` });
     }
 
-    if (
-      req.body.hasOwnProperty('status') && req.body.status.trim() === '' ||
-      req.body.hasOwnProperty('skills') && req.body.skills.trim() === ''
-    ) {
+    if (req.body.hasOwnProperty('status') && req.body.status.trim() === '') {
       return res.status(422).json(({
-        errors:
-          [{ msg: `Field can't be empty` }]
+        errors: [{
+          param: 'status',
+          msg: `Field "status" can't be empty`
+        }]
+      }));
+    }
+
+    if (req.body.hasOwnProperty('skills') && req.body.skills.trim() === '') {
+      return res.status(422).json(({
+        errors: [{
+          param: 'skills',
+          msg: `Field "skills" can't be empty`
+        }]
       }));
     }
 
@@ -190,8 +195,10 @@ router.patch('/', auth, async (req: RequestExt, res) => {
 
       if (req.body.skills.length > 8) {
         return res.status(422).json(({
-          errors:
-            [{ msg: `You can add up to maximum 8 skills` }]
+          errors: [{
+            param: 'skills',
+            msg: `You can add up to maximum 8 skills`
+          }]
         }));
       }
     }
@@ -228,7 +235,7 @@ router.patch('/', auth, async (req: RequestExt, res) => {
       new: true,
       useFindAndModify: false
     })
-      .populate('userID', ['nick', 'avatar']);;
+      .populate('userID', ['nick', 'avatar']);
 
     res.json(profile);
   } catch (error) {
@@ -467,8 +474,8 @@ router.delete('/experience/:id',
 router.delete('/', auth, async (req: RequestExt, res) => {
   const { userID } = req.user!;
   try {
-    await Profile.findOneAndDelete({ userID });
-    res.json({ msg: 'User profile has been deleted' });
+    const deletedProfile = await Profile.findOneAndDelete({ userID });
+    res.json(deletedProfile);
   } catch (error) {
     console.error(error.message);
     res.status(500).send('server error');

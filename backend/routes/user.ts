@@ -46,17 +46,9 @@ router.get('/:token', (req, res) => {
 
       let user: UserData | null = await User.findOne({ $or: [{ email }, { nick }] });
 
-      if (user && user.email === email) {
+      if (user) {
         return res.status(422).json(({
-          errors:
-            [{ msg: 'Email already exist' }]
-        }));
-      }
-
-      if (user && user.nick === nick) {
-        return res.status(422).json(({
-          errors:
-            [{ msg: 'Nickname already exist' }]
+          msg: 'User already exist'
         }));
       }
 
@@ -71,7 +63,7 @@ router.get('/:token', (req, res) => {
 
       const appURL = process.env.APP_URL;
 
-      return res.redirect(`${appURL}/login`);
+      return res.redirect(`${appURL}/accountMessage`);
     } catch (error) {
       console.error(error.message);
       res.status(500).send('server error');
@@ -119,14 +111,14 @@ router.post('/register',
       if (user && user.email === email) {
         return res.status(422).json(({
           errors:
-            [{ msg: 'Email already exist' }]
+            [{ param: 'email', msg: 'Email already exist' }]
         }));
       }
 
       if (user && user.nick === nick) {
         return res.status(422).json(({
           errors:
-            [{ msg: 'Nickname already exist' }]
+            [{ param: 'nick', msg: 'Nickname already exist' }]
         }));
       }
 
@@ -171,7 +163,7 @@ router.post('/register',
             Link to activate the account: 
           </b>
           <a href="${appURL}/api/user/${token}">
-            ${appURL}/login
+            ${appURL}/accountMessage
           </a>
           `, // html body
       });
@@ -208,7 +200,7 @@ router.post('/login',
       if (!user) {
         return res.status(401).json(({
           errors:
-            [{ msg: 'Invalid credentials' }]
+            [{ param: 'invalid', msg: 'Invalid credentials' }]
         }));
       }
 
@@ -217,7 +209,7 @@ router.post('/login',
       if (!isValidPassword) {
         return res.status(401).json(({
           errors:
-            [{ msg: 'Invalid credentials' }]
+            [{ param: 'invalid', msg: 'Invalid credentials' }]
         }));
       }
 
@@ -254,9 +246,9 @@ router.post('/send', body('email', 'Include valid email').isEmail(),
       const user = await User.findOne({ email });
 
       if (!user) {
-        return res.status(401).json(({
+        return res.status(422).json(({
           errors:
-            [{ msg: 'There is no such user' }]
+            [{ param: 'email', msg: 'There is no such user' }]
         }));
       }
 
@@ -330,9 +322,13 @@ router.patch('/reset/:token',
 
     jwt.verify(token, secret, async (err, decoded: DecodedData | undefined) => {
       if (err) {
-        return res.status(400).json({
-          msg: 'Password change link has expired'
-        });
+        return res.status(422).json(({
+          errors:
+            [{
+              param: 'repassword',
+              msg: 'Password change link has expired'
+            }]
+        }));
       }
 
       const saltRounds = 10;
@@ -391,7 +387,7 @@ router.patch('/change',
       if (!isValidPassword) {
         return res.status(422).json(({
           errors:
-            [{ msg: `To set a new password, first you have to enter your current one` }]
+            [{ param: 'password', msg: `To set a new password, first you have to enter your current one` }]
         }));
       }
 

@@ -1,29 +1,32 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { LOGOUT_USER } from 'actions/types';
 import { Nav, Navbar } from 'react-bootstrap';
 import { useHistory } from "react-router-dom";
 import { State } from 'interfaces';
+import { useQueryClient } from 'react-query';
 
 const Navigation = () => {
-  const history = useHistory();
+  const { push } = useHistory();
   const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
-
+  const queryClient = useQueryClient();
   const isLogged = useSelector((state: State) => state.user.isLogged);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = () => {
     dispatch({
       type: LOGOUT_USER
     });
 
-    history.push('/login')
-  }, [dispatch, history]);
+    queryClient.clear();
 
-  const handleOnClick = useCallback((path) => {
-    history.push(path);
+    push('/login')
+  }
+
+  const handleOnClick = (path: string) => {
+    push(path);
     setExpanded(false)
-  }, [history]);
+  }
 
 
   return isLogged ?

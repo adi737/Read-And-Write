@@ -1,36 +1,55 @@
-import { updateProfile } from 'actions/profile.action';
-import { SkillsFormState, State } from 'interfaces';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
-import { useDispatch, useSelector } from 'react-redux';
-import { v4 as uuidv4 } from 'uuid';
+import api from 'helpers/api';
+import { toErrorMap } from 'helpers/toErrorMap';
+import { SkillsFormState } from 'interfaces';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Form, Modal, ModalProps, Spinner } from 'react-bootstrap';
+import { useMutation, useQueryClient } from 'react-query';
 
 const UpdateSkills = (props: ModalProps) => {
   const [formData, setFormData] = useState<SkillsFormState>({});
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const myProfile: any = queryClient.getQueryData('myProfile');
 
-  const skills = useSelector((state: State) => state.profile.profile.skills);
+  const updateProfile = async () => {
+    const { data } = await api.patch('/profile', formData);
+    return data;
+  }
 
-  const dispatch = useDispatch();
+  const { mutate, isLoading } = useMutation(updateProfile, {
+    onSuccess(updatedProfile) {
+      const profileCache = queryClient.getQueryData(['profile', updatedProfile._id]);
 
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+      if (profileCache) {
+        queryClient.setQueryData(['profile', updatedProfile._id], updatedProfile);
+      }
+
+      queryClient.setQueryData('myProfile', updatedProfile);
+      props.onHide();
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
+
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
-    const id = uuidv4();
-    dispatch(updateProfile(formData, setFormData, id, props.onHide, setLoading));
-  }, [dispatch, formData, props.onHide]);
+    mutate();
+  }
 
   useEffect(() => {
-    setFormData({ skills: skills.map(skill => ` ${skill}`) });
-  }, [skills]);
+    setFormData({
+      skills: myProfile.skills ? myProfile.skills.map(skill => ` ${skill}`) : ''
+    });
+  }, [myProfile]);
 
   return (
     <Modal
@@ -54,7 +73,11 @@ const UpdateSkills = (props: ModalProps) => {
               name='skills'
               onChange={handleOnChange}
               type="text"
-              placeholder="Your skills (split by comma)" />
+              placeholder="Your skills (split by comma)"
+            />
+            {
+              error?.skills ? <Alert className="mt-2" variant='danger'>{error.skills}</Alert> : null
+            }
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -62,10 +85,10 @@ const UpdateSkills = (props: ModalProps) => {
             onClick={props.onHide}
             variant="secondary">
             Close
-        </Button>
+          </Button>
           {
-            loading ?
-              <Button variant="primary" type="submit" disabled>
+            isLoading ?
+              <Button variant="primary" disabled>
                 <Spinner
                   as="span"
                   animation="grow"

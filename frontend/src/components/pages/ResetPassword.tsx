@@ -1,33 +1,39 @@
-import React, { useCallback, useState } from 'react'
-import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
-import { useHistory, useParams } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
-import { resetPassword } from 'actions/user.action';
+import React, { useState } from 'react'
+import { Alert, Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { useParams } from 'react-router-dom';
+import api from 'helpers/api';
+import { useMutation } from 'react-query';
+import { toErrorMap } from 'helpers/toErrorMap';
+
 
 const ResetPassword = () => {
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
-
-  const history = useHistory();
+  const [error, setError] = useState<any>(null);
+  const [success, setSuccess] = useState(false);
   const { token } = useParams<{ token: string }>();
+  const { mutate: resetPassword, isLoading } = useMutation(() => api.patch(`/user/reset/${token}`, formData), {
+    onSuccess() {
+      setError(null);
+      setSuccess(true);
+    },
+    onError(err: any) {
+      setSuccess(false);
+      setError(toErrorMap(err.response.data.errors));
+    }
+  });
 
-  const dispatch = useDispatch();
-
-  const handleOnChange = (e: { target: { name: string; value: string; }; }) => {
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   }
 
-  const handleOnSubmit = useCallback(e => {
+  const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const id = uuidv4();
-    setLoading(true);
-    dispatch(resetPassword(formData, id, history, token, setLoading));
-  }, [dispatch, formData, history, token]);
+    resetPassword();
+  }
 
   return (
     <Container className='mt-5 text-center'>
@@ -40,18 +46,29 @@ const ResetPassword = () => {
                 onChange={handleOnChange}
                 required
                 type="password"
-                placeholder="Password" />
+                placeholder="Password"
+              />
+              {
+                error?.password ? <Alert className="mt-2" variant='danger'>{error.password}</Alert> : null
+              }
             </Form.Group>
             <Form.Group controlId="formBasicRepassword">
               <Form.Control
                 name='repassword'
                 onChange={handleOnChange}
                 required type="password"
-                placeholder="Repeat password" />
+                placeholder="Repeat password"
+              />
+              {
+                error?.repassword ? <Alert className="mt-2" variant='danger'>{error.repassword}</Alert> : null
+              }
+              {
+                success ? <Alert className="mt-2" variant='success'>Password has been changed</Alert> : null
+              }
             </Form.Group>
             {
-              loading ?
-                <Button block variant="primary" type="submit" disabled>
+              isLoading ?
+                <Button block variant="primary" disabled>
                   <Spinner
                     as="span"
                     animation="grow"
