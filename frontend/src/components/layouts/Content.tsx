@@ -17,6 +17,7 @@ import ActivateMessage from 'components/pages/ActivateMessage';
 import ResetMessage from 'components/pages/ResetMessage';
 import ChangePassword from 'components/pages/ChangePassword';
 import AccountMessage from 'components/pages/AccountMessage';
+import Messenger from 'components/pages/Messenger';
 
 const Content = () => {
   return (
@@ -36,6 +37,7 @@ const Content = () => {
       <Route path='/email' component={SendEmail} exact />
       <Route path='/reset/:token' component={ResetPassword} exact />
       <PrivateRoute path='/change' component={ChangePassword} exact />
+      <Route path='/messenger' component={Messenger} exact />
       <Route component={NotFound} />
     </Switch>
   );

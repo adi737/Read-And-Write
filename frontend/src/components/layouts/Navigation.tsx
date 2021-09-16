@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { LOGOUT_USER } from 'actions/types';
+import { LOGOUT_USER } from 'reducers/types';
 import { Nav, Navbar } from 'react-bootstrap';
 import { useHistory } from "react-router-dom";
 import { State } from 'interfaces';
@@ -34,7 +34,7 @@ const Navigation = () => {
       <Navbar.Brand
         onClick={() => handleOnClick('/')}>
         <i className="fas fa-book-reader"></i> Read&Write
-        </Navbar.Brand>
+      </Navbar.Brand>
       <Navbar.Toggle
         onClick={() => setExpanded(expanded ? false : true)}
         aria-controls="navbar-nav"
@@ -49,7 +49,7 @@ const Navigation = () => {
         <Nav>
           <Nav.Link onClick={() => handleOnClick('/change')}>
             Change password
-            </Nav.Link>
+          </Nav.Link>
           <Nav.Link onClick={handleLogout}>
             Sign out <i className="fas fa-sign-out-alt"></i>
           </Nav.Link>
@@ -60,7 +60,7 @@ const Navigation = () => {
     <Navbar expanded={expanded} variant='dark' bg='dark' expand="lg">
       <Navbar.Brand onClick={() => handleOnClick('/')}>
         <i className="fas fa-book-reader"></i> Read&Write
-        </Navbar.Brand>
+      </Navbar.Brand>
       <Navbar.Toggle
         onClick={() => setExpanded(expanded ? false : true)}
         aria-controls="navbar-nav"

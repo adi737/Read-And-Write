@@ -6,11 +6,19 @@ import connectDB from './db';
 import user from './routes/user';
 import profile from './routes/profile';
 import article from './routes/article';
+import { Server } from 'socket.io';
 
-const app = express();
 
 //use environment variables
 config();
+
+//set server
+const app = express();
+const io = new Server(8060, {
+  cors: {
+    origin: process.env.APP_URL
+  }
+});
 
 //connect database
 connectDB();
@@ -33,6 +41,16 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-const PORT = process.env.PORT || 8000;
+//run server
+const PORT = process.env.PORT || 8050;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
-app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
+io.on("connection", (socket) => {
+  console.log('Socket.io connected');
+
+  socket.on('disconnect', () => {
+    console.log('Socket.io disconnected');
+  })
+
+  io.emit('message', 'elo123')
+});

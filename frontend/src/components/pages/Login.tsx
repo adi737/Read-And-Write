@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from 'actions/user.action';
 import { Alert, Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { LoginState, State } from 'interfaces';
 import api from 'helpers/api';
 import { useMutation, useQueryClient } from 'react-query';
 import { toErrorMap } from 'helpers/toErrorMap';
+import { LOGIN_USER } from 'reducers/types';
 
 const Login = () => {
   const [formData, setFormData] = useState<LoginState>({});
@@ -29,7 +29,12 @@ const Login = () => {
 
   const { mutate, isLoading } = useMutation(login, {
     onSuccess(data) {
-      dispatch(loginUser(data));
+      dispatch({
+        type: LOGIN_USER,
+        payload: data.token,
+        userID: data.userID
+      });
+
       queryClient.clear();
     },
     onError(err: any) {

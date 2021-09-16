@@ -12,7 +12,7 @@ import api from 'helpers/api';
 import { Experience } from 'components/utils/Experience';
 import { Education } from 'components/utils/Education';
 import CreateProfile from 'components/forms/CreateProfile';
-import { DELETE_ACCOUNT } from 'actions/types';
+import { DELETE_ACCOUNT } from 'reducers/types';
 
 const MyProfile = () => {
   const [showStatus, setShowStatus] = useState(false);

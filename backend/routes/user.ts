@@ -218,7 +218,7 @@ router.post('/login',
       const payload = { userID };
       const secret = process.env.SECRET_LOGIN!;
 
-      const token = jwt.sign(payload, secret, { expiresIn: '5h' });
+      const token = jwt.sign(payload, secret, { expiresIn: 15 });
 
       res.json({ token, userID });
 

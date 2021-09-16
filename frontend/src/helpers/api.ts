@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { store } from 'index';
-import { LOGOUT_USER } from 'actions/types';
+import { LOGOUT_USER } from 'reducers/types';
 
 const api = axios.create({
   baseURL: '/api',

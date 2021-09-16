@@ -1,5 +1,5 @@
 /* eslint-disable import/no-anonymous-default-export */
-import { LOGIN_USER, LOGOUT_USER, DELETE_ACCOUNT } from 'actions/types'
+import { LOGIN_USER, LOGOUT_USER, DELETE_ACCOUNT } from 'reducers/types'
 
 const initialState = {
   token: localStorage.getItem('token'),
