@@ -6,6 +6,7 @@ import connectDB from './db';
 import user from './routes/user';
 import profile from './routes/profile';
 import article from './routes/article';
+import http from 'http';
 import { Server } from 'socket.io';
 
 
@@ -14,11 +15,13 @@ config();
 
 //set server
 const app = express();
-const io = new Server(8060, {
-  cors: {
-    origin: process.env.APP_URL
-  }
-});
+const server = http.createServer(app);
+const io = new Server(server,
+  process.env.NODE_ENV === 'production' ? {} : {
+    cors: {
+      origin: "http://localhost:3000",
+    }
+  });
 
 //connect database
 connectDB();
@@ -43,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
 
 //run server
 const PORT = process.env.PORT || 8050;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
 io.on("connection", (socket) => {
   console.log('Socket.io connected');
