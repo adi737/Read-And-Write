@@ -45,6 +45,9 @@ const Navigation = () => {
           <Nav.Link onClick={() => handleOnClick('/profiles')}>Profiles</Nav.Link>
           <Nav.Link onClick={() => handleOnClick('/article')}>My articles</Nav.Link>
           <Nav.Link onClick={() => handleOnClick('/profile')}>My profile</Nav.Link>
+          <Nav.Link onClick={() => handleOnClick('/messenger')}>Messages {``}
+            <i className="fas fa-comment-dots"></i>
+          </Nav.Link>
         </Nav>
         <Nav>
           <Nav.Link onClick={() => handleOnClick('/change')}>
@@ -55,7 +58,7 @@ const Navigation = () => {
           </Nav.Link>
         </Nav>
       </Navbar.Collapse>
-    </Navbar>
+    </Navbar >
     :
     <Navbar expanded={expanded} variant='dark' bg='dark' expand="lg">
       <Navbar.Brand onClick={() => handleOnClick('/')}>

@@ -6,6 +6,7 @@ import connectDB from './db';
 import user from './routes/user';
 import profile from './routes/profile';
 import article from './routes/article';
+import messenger from './routes/messenger';
 import http from 'http';
 import { Server } from 'socket.io';
 
@@ -34,6 +35,7 @@ app.use(fileUpload());
 app.use('/api/user', user);
 app.use('/api/profile', profile);
 app.use('/api/article', article);
+app.use('/api/messenger', messenger);
 
 //set static assets in production
 if (process.env.NODE_ENV === 'production') {

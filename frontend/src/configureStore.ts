@@ -1,12 +1,11 @@
 import { applyMiddleware, createStore } from "redux";
 import { composeWithDevTools } from "redux-devtools-extension";
-import thunkMiddleware from "redux-thunk";
 import rootReducer from "reducers";
 import setAuthToken from "helpers/setAuthToken";
 import { HotModule } from "interfaces";
 
 export default function configureStore(preloadedState: {}) {
-  const middlewares = [thunkMiddleware];
+  const middlewares = [];
   const middlewareEnhancer = applyMiddleware(...middlewares);
 
   const enhancers = [middlewareEnhancer];

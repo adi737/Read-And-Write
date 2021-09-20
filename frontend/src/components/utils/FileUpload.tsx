@@ -56,7 +56,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ id }) => {
 
       return uploadPictureToArticle(imgUrl);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error.response.data)
     }
   }

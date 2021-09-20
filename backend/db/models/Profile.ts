@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import { model, Schema } from 'mongoose';
 
 const ProfileSchema = new Schema({
   userID: {
@@ -99,4 +99,4 @@ const ProfileSchema = new Schema({
   }
 });
 
-export default mongoose.model('profiles', ProfileSchema);
+export default model('profiles', ProfileSchema);
