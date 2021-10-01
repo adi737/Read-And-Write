@@ -12,10 +12,11 @@ import Profile from '../db/models/Profile'
 import Article from '../db/models/Article';
 import { DecodedData, RequestExt, UserData } from 'backend/interfaces';
 
+
 const router = Router();
 
 // @route    GET api/user
-// @desc     Get user data by ID
+// @desc     Get user by ID
 // @access   Private
 router.get('/', auth, async (req: RequestExt, res) => {
   try {
@@ -215,12 +216,18 @@ router.post('/login',
 
       const userID = user.id;
 
-      const payload = { userID };
+      const payload = {
+        userID,
+        email: user.email,
+        nick: user.nick,
+        avatar: user.avatar,
+        date: user.date
+      };
       const secret = process.env.SECRET_LOGIN!;
 
-      const token = jwt.sign(payload, secret, { expiresIn: "15h" });
+      const token = jwt.sign(payload, secret, { expiresIn: "15 days" });
 
-      res.json({ token, userID });
+      res.json({ token, ...payload });
 
     } catch (error) {
       console.error(error.message);

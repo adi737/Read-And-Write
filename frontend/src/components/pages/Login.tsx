@@ -31,8 +31,12 @@ const Login = () => {
     onSuccess(data) {
       dispatch({
         type: LOGIN_USER,
-        payload: data.token,
-        userID: data.userID
+        token: data.token,
+        userID: data.userID,
+        email: data.email,
+        nick: data.nick,
+        avatar: data.avatar,
+        date: data.date
       });
 
       queryClient.clear();

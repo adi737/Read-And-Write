@@ -13,7 +13,7 @@ export interface UserData extends Document {
   password?: string;
   nick?: string;
   avatar?: string;
-  education?: [];
+  date?: Date;
 }
 
 export interface ProfileData extends Document {

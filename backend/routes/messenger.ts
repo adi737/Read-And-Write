@@ -8,10 +8,10 @@ import { body, validationResult } from "express-validator";
 
 const router = Router();
 
-// @route    GET api/messenger/:id
+// @route    GET api/messenger/messages/:id
 // @desc     Get all messages
 // @access   Private
-router.get('/:id',
+router.get('/messages/:id',
   [
     checkObjectID('id'),
     auth,
@@ -37,8 +37,8 @@ router.get('/', auth, async (req: RequestExt, res: Response) => {
   const { userID } = req.user!;
   try {
     const conversations = await Conversation.find({
-      userID
-    }).populate('memberId', ['nick', 'avatar']);
+      members: { $in: [userID] }
+    }).populate('members', ['nick', 'avatar']);
 
     return res.json(conversations);
   } catch (error) {
@@ -47,6 +47,33 @@ router.get('/', auth, async (req: RequestExt, res: Response) => {
   }
   return;
 });
+
+// @route    GET api/messenger/:memberId
+// @desc     Get user conversation
+// @access   Private
+router.get('/:memberId',
+  [
+    checkObjectID('memberId'),
+    auth
+  ], async (req: RequestExt, res: Response) => {
+    const { userID } = req.user!;
+    const { memberId } = req.params;
+
+    try {
+      const conversation = await Conversation.findOne({
+        $or: [
+          { members: [userID, memberId] },
+          { members: [memberId, userID] }
+        ]
+      });
+
+      return res.json(conversation);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send('server error');
+    }
+    return;
+  });
 
 
 // @route    POST api/messenger/:id
@@ -68,14 +95,15 @@ router.post('/:id',
 
     try {
       let conversation = await Conversation.findOne({
-        userID,
-        memberId: req.params.id
+        $or: [
+          { members: [userID, req.params.id] },
+          { members: [req.params.id, userID] }
+        ]
       });
 
       if (!conversation) {
         conversation = await new Conversation({
-          userID,
-          memberId: req.params.id
+          members: [userID, req.params.id]
         }).save()
       }
 

@@ -5,6 +5,7 @@ import { Nav, Navbar } from 'react-bootstrap';
 import { useHistory } from "react-router-dom";
 import { State } from 'interfaces';
 import { useQueryClient } from 'react-query';
+import { socket } from '../../index';
 
 const Navigation = () => {
   const { push } = useHistory();
@@ -19,13 +20,14 @@ const Navigation = () => {
     });
 
     queryClient.clear();
-
+    socket.emit('removeUser');
+    setExpanded(false);
     push('/login')
   }
 
   const handleOnClick = (path: string) => {
     push(path);
-    setExpanded(false)
+    setExpanded(false);
   }
 
 

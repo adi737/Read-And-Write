@@ -152,10 +152,15 @@ export interface State extends CombinedState<{
   user: {
     token: string;
     userID: string;
+    email: string;
+    nick: string;
+    avatar: string;
+    date: string;
     isLogged: boolean;
     loading: boolean;
     errors: [];
   };
+  onlineUsers: []
 }> { }
 
 export interface ProfileState {

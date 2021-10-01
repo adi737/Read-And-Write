@@ -37,7 +37,7 @@ const Content = () => {
       <Route path='/email' component={SendEmail} exact />
       <Route path='/reset/:token' component={ResetPassword} exact />
       <PrivateRoute path='/change' component={ChangePassword} exact />
-      <Route path='/messenger' component={Messenger} exact />
+      <PrivateRoute path='/messenger' component={Messenger} exact />
       <Route component={NotFound} />
     </Switch>
   );

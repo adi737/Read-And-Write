@@ -26,8 +26,7 @@ export default function configureStore(preloadedState: {}) {
     // if the token changes set the value in localStorage and axios headers
     if ((previousState as any).user.token !== (currentState as any).user.token) {
       const token = (currentState as any).user.token;
-      const userID = (currentState as any).user.userID;
-      setAuthToken({ token, userID });
+      setAuthToken({ token });
     }
   });
 

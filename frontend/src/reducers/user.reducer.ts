@@ -3,20 +3,28 @@ import { LOGIN_USER, LOGOUT_USER, DELETE_ACCOUNT } from 'reducers/types'
 
 const initialState = {
   token: localStorage.getItem('token'),
-  userID: localStorage.getItem('userID'),
+  userID: null,
+  email: null,
+  nick: null,
+  avatar: null,
+  date: null,
   isLogged: null,
   loading: true,
 }
 
-export default (state = initialState, action: { type: string; payload?: any; userID?: string; }) => {
-  const { type, payload, userID } = action;
+export default (state = initialState, action) => {
+  const { type, token, userID, email, nick, avatar, date } = action;
 
   switch (type) {
     case LOGIN_USER:
       return {
         ...state,
-        token: payload,
+        token,
         userID,
+        email,
+        nick,
+        avatar,
+        date,
         isLogged: true,
         loading: false,
       };
@@ -26,6 +34,10 @@ export default (state = initialState, action: { type: string; payload?: any; use
         ...state,
         token: null,
         userID: null,
+        email: null,
+        nick: null,
+        avatar: null,
+        date: null,
         isLogged: false,
         loading: false,
       };

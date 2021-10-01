@@ -50,12 +50,51 @@ if (process.env.NODE_ENV === 'production') {
 const PORT = process.env.PORT || 8050;
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
+//socket.io
+let users: {
+  userId: string;
+  email: string;
+  nick: string;
+  avatar: string;
+  date: string;
+  socketId: string;
+}[] = [];
+
+const addUser = (userId: string, email: string, nick: string, avatar: string, date: string, socketId: string) => {
+  users.push({
+    userId,
+    email,
+    nick,
+    avatar,
+    date,
+    socketId
+  });
+}
+
+const removeUser = (socketId: string) => {
+  users = users.filter(user => user.socketId !== socketId);
+}
+
 io.on("connection", (socket) => {
   console.log('Socket.io connected');
 
+  //add user
+  socket.on("addUser", ({ userId, email, nick, avatar, date }) => {
+    addUser(userId, email, nick, avatar, date, socket.id);
+    io.emit("getUsers", users);
+  });
+
+  socket.on("removeUser", () => {
+    //remove user
+    removeUser(socket.id)
+    io.emit("getUsers", users);
+  });
+
   socket.on('disconnect', () => {
     console.log('Socket.io disconnected');
-  })
 
-  io.emit('message', 'elo123')
+    //remove user
+    removeUser(socket.id)
+    io.emit("getUsers", users);
+  })
 });
