@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Loader from 'helpers/Loader';
 import Moment from 'react-moment';
-import { Col, Container, Image, Nav, Row, Tab } from 'react-bootstrap';
-import { useQuery } from 'react-query';
+import { Alert, Button, Col, Container, Form, Image, Nav, Row, Spinner, Tab } from 'react-bootstrap';
+import { useMutation, useQuery } from 'react-query';
 import api from 'helpers/api';
 import NotFound from './NotFound';
+import { useSelector } from 'react-redux';
+import { State } from 'interfaces';
+import { toErrorMap } from 'helpers/toErrorMap';
+import { socket } from 'index';
+import { useHistory } from 'react-router';
 
 interface ProfileProps {
   match: {
@@ -16,6 +21,33 @@ interface ProfileProps {
 
 const Profile: React.FC<ProfileProps> = ({ match: { params: { id } } }) => {
   const { data: profile, isLoading } = useQuery(['profile', id], () => api.get(`/profile/${id}`).then(res => res.data));
+  const isLogged = useSelector((state: State) => state.user.isLogged);
+  const userID = useSelector((state: State) => state.user.userID);
+  const [error, setError] = useState<any>(null);
+  const [formState, setFormState] = useState({ text: '' });
+  const { push } = useHistory();
+
+  const addMessage = async () => {
+    const { data } = await api.post(`/messenger/${profile?.userID._id}`, formState);
+    return data;
+  }
+
+  const { mutate, isLoading: loading } = useMutation(addMessage, {
+    onSuccess(message) {
+      setError(null);
+      socket.emit('addMessage', { memberId: profile?.userID._id, message });
+      push('/messenger');
+    },
+    onError(err: any) {
+      setError(toErrorMap(err.response.data.errors));
+    }
+  })
+
+  const handleAddMessage = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    mutate();
+  }
 
   return isLoading ?
     <Loader />
@@ -37,11 +69,11 @@ const Profile: React.FC<ProfileProps> = ({ match: { params: { id } } }) => {
                         profile.education && profile.education.length === 0 ?
                         <Nav.Link className='user-select-none' disabled eventKey="experience">
                           Exp / Edu
-                      </Nav.Link>
+                        </Nav.Link>
                         :
                         <Nav.Link className='user-select-none' eventKey="experience">
                           Exp / Edu
-                      </Nav.Link>
+                        </Nav.Link>
                     }
                   </Nav.Item>
                 </Nav>
@@ -60,6 +92,41 @@ const Profile: React.FC<ProfileProps> = ({ match: { params: { id } } }) => {
                             width={60}
                             height={60}
                           />
+                          {
+                            isLogged ?
+                              profile?.userID._id === userID ? null :
+                                <>
+                                  <Form onSubmit={handleAddMessage} className='message-form'>
+                                    <Form.Control
+                                      required
+                                      as="textarea"
+                                      onChange={e => setFormState({ text: e.target.value })}
+                                      placeholder='Write to me :)'
+                                      value={formState.text}
+                                      className='mt-3 mb-1'
+                                    />
+                                    {
+                                      error?.text ? <Alert className="mt-2" variant='danger'>{error.text}</Alert> : null
+                                    }
+                                    {
+                                      loading ?
+                                        <Button variant="primary" disabled>
+                                          <Spinner
+                                            as="span"
+                                            animation="grow"
+                                            size="sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                          /> loading...
+                                        </Button>
+                                        :
+                                        <Button variant="primary" type="submit">
+                                          Send message
+                                        </Button>
+                                    }
+                                  </Form>
+                                </> : null
+                          }
                         </article>
                       </Col>
                       <Col className="border position-relative py-3">
@@ -120,14 +187,14 @@ const Profile: React.FC<ProfileProps> = ({ match: { params: { id } } }) => {
                                   <p className='mb-1'>{exp.location}</p>
                                   <p className='font-weight-bold m-0'>
                                     Description:
-                                </p>
+                                  </p>
                                   <p className='mb-2'>{exp.description}</p>
                                   <small>
                                     <Moment format='YYYY.MM.DD'>
                                       {exp.from}
                                     </Moment>
-                                  -
-                                  {
+                                    -
+                                    {
                                       exp.current ?
                                         'now' :
                                         <Moment format='YYYY.MM.DD'>
@@ -154,14 +221,14 @@ const Profile: React.FC<ProfileProps> = ({ match: { params: { id } } }) => {
                                   <p className='mb-1'>{edu.degree}</p>
                                   <p className='font-weight-bold m-0'>
                                     Description:
-                                </p>
+                                  </p>
                                   <p className='mb-2'>{edu.description}</p>
                                   <small>
                                     <Moment format='YYYY.MM.DD'>
                                       {edu.from}
                                     </Moment>
-                                  -
-                                  {
+                                    -
+                                    {
                                       edu.current ?
                                         'now' :
                                         <Moment format='YYYY.MM.DD'>

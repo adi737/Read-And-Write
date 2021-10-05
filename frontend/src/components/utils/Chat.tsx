@@ -1,9 +1,10 @@
 import { AddMessage } from 'components/forms/AddMessage';
 import api from 'helpers/api';
 import Loader from 'helpers/Loader';
+import { socket } from 'index';
 import React, { useEffect, useRef } from 'react'
 import { Row } from 'react-bootstrap';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { Message } from './Message';
 
 interface ChatProps {
@@ -21,12 +22,25 @@ export const Chat: React.FC<ChatProps> =
       return data;
     });
     const divRef = useRef<HTMLDivElement>(null);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
       if (divRef.current) {
         divRef.current.scrollIntoView();
       }
     }, [messages]);
+
+    useEffect(() => {
+      const messagesCache =
+        queryClient.getQueriesData(["messages", conversationId]);
+
+      if (messagesCache) {
+        socket.on('getMessage', (message) => {
+          queryClient.setQueryData(["messages", conversationId],
+            (messages: any) => [...messages, message])
+        });
+      }
+    }, [conversationId, queryClient]);
 
     return (
       <>
@@ -35,22 +49,21 @@ export const Chat: React.FC<ChatProps> =
         </Row >
         {
           isLoading ? <Loader /> :
-            messages.length === 0 ? null :
-              <>
-                <Row className='m-0 flex-column messages'>
-                  {
-                    messages.map(message =>
-                      <Message key={message._id} message={message} />
-                    )
-                  }
-                </Row>
-                <Row className='m-0 write-message'>
-                  <AddMessage
-                    memberId={memberId}
-                    conversationId={conversationId}
-                  />
-                </Row>
-              </>
+            <>
+              <Row className='m-0 flex-column messages'>
+                {
+                  messages.map(message =>
+                    <Message key={message._id} message={message} />
+                  )
+                }
+              </Row>
+              <Row className='m-0 write-message'>
+                <AddMessage
+                  memberId={memberId}
+                  conversationId={conversationId}
+                />
+              </Row>
+            </>
         }
         <div ref={divRef}></div>
       </>

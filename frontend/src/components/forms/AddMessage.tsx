@@ -1,5 +1,6 @@
 import api from 'helpers/api';
 import { toErrorMap } from 'helpers/toErrorMap';
+import { socket } from 'index';
 import React, { useEffect, useState } from 'react'
 import { Form, Button, Spinner, Alert } from 'react-bootstrap';
 import { useMutation, useQueryClient } from 'react-query';
@@ -27,6 +28,7 @@ export const AddMessage: React.FC<AddMessageProps> =
         queryClient.setQueryData(['messages', conversationId], (messages: any) =>
           [...messages, message]
         );
+        socket.emit('addMessage', { memberId, message });
       },
       onError(err: any) {
         setError(toErrorMap(err.response.data.errors));

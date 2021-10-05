@@ -10,7 +10,7 @@ import setAuthToken from 'helpers/setAuthToken';
 import { LOGIN_USER, SET_USERS } from '../reducers/types';
 import api from 'helpers/api';
 import { socket } from '../index';
-// import { ReactQueryDevtools } from 'react-query/devtools'
+import { ReactQueryDevtools } from 'react-query/devtools'
 
 
 function App() {
@@ -86,7 +86,7 @@ function App() {
           <Content />
         </main>
       </Router>
-      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
 }
 

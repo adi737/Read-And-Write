@@ -26,24 +26,27 @@ const Messenger = () => {
       <section className='users'>
         <Row className='m-0 user-icons'>
           {
-            onlineUsers.map(
-              ({ userId, nick, avatar }) =>
-                <OnlineUser
-                  key={userId}
-                  userId={userId}
-                  nick={nick}
-                  avatar={avatar}
-                  setIsChatting={setIsChatting}
-                  setConversationId={setConversationId}
-                  setUserId={setUserId}
-                />
-            )
+            onlineUsers.length < 2 ?
+              <h5 className='mt-2 mx-auto text-center'>No online users</h5> :
+              onlineUsers.map(
+                ({ userId, nick, avatar }) =>
+                  <OnlineUser
+                    key={userId}
+                    userId={userId}
+                    nick={nick}
+                    avatar={avatar}
+                    setIsChatting={setIsChatting}
+                    setConversationId={setConversationId}
+                    setUserId={setUserId}
+                  />
+              )
           }
         </Row>
       </section>
       <section className='conversations'>
         {
-          isLoading ? <Loader /> :
+          isLoading ? <Loader /> : conversations.length === 0 ?
+            <h5 className='text-center'>No conversation yet</h5> :
             conversations.map(({ _id, members }) =>
               <Conversation
                 key={_id}

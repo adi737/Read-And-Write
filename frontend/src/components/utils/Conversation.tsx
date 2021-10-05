@@ -14,7 +14,6 @@ interface ConversationProps {
 export const Conversation: React.FC<ConversationProps> =
   ({ conversationId, setConversationId, setIsChatting, setUserId, members }) => {
     const userID = useSelector((state: State) => state.user.userID);
-    const avatar = useSelector((state: State) => state.user.avatar);
     const member = members.filter(member => member._id !== userID)[0];
     const memberId = member?._id;
     const onlineUsers = useSelector((state: State) => state.onlineUsers);
@@ -25,26 +24,25 @@ export const Conversation: React.FC<ConversationProps> =
       setUserId(memberId);
       setIsChatting(true);
     }
-    return (
+    return member ?
       <Row
         onClick={handleOnClick}
         className='align-items-center m-0 conversation'
       >
-        <Col className='flex-grow-0 my-1'>
+        < Col className='flex-grow-0 my-1' >
           <div className="img">
             <Image
               width={50}
               height={50}
-              src={member ? member.avatar : avatar}
+              src={member.avatar}
               roundedCircle
               alt="avatar"
             />
             <div className={isOnline ? 'green' : 'red'}></div>
           </div>
-        </Col>
+        </Col >
         <Col className='p-0 ml-3'>
-          <p className='m-0'>{member ? member.nick : 'me'}</p>
+          <p className='m-0'>{member.nick}</p>
         </Col>
-      </Row>
-    );
+      </Row > : null
   }

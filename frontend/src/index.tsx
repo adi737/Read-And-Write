@@ -9,7 +9,10 @@ import 'index.scss';
 import { HotModule } from 'interfaces';
 import { io } from 'socket.io-client';
 
-export const store = configureStore('');
+export const store = configureStore({
+  user: {},
+  onlineUsers: []
+});
 
 export const socket = io(process.env.NODE_ENV === 'production' ?
   'https://read-and-write-app.herokuapp.com' : 'http://localhost:8050');

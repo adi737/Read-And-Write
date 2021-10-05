@@ -96,5 +96,14 @@ io.on("connection", (socket) => {
     //remove user
     removeUser(socket.id)
     io.emit("getUsers", users);
+  });
+
+  socket.on('addMessage', ({ memberId, message }) => {
+    const userArr = users.filter(user => user.userId === memberId);
+    const socketIds = userArr.map(user => user.socketId);
+
+    if (socketIds.length !== 0) {
+      io.to(socketIds).emit('getMessage', message);
+    }
   })
 });

@@ -30,7 +30,7 @@ export const OnlineUser: React.FC<OnlineUserProps> =
       }
     }
 
-    return (
+    return myId !== userId ?
       <Col
         onClick={handleOnClick}
         className='flex-grow-0 mt-3'
@@ -45,12 +45,7 @@ export const OnlineUser: React.FC<OnlineUserProps> =
             />
             <div className='green'></div>
           </div>
-          {
-            myId === userId ?
-              <p className='m-0 text-center'>me</p> :
-              <p className='m-0 text-center'>{nick}</p>
-          }
+          <p className='m-0 text-center'>{nick}</p>
         </div>
-      </Col >
-    );
+      </Col > : null
   }

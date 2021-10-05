@@ -1,15 +1,15 @@
-import { applyMiddleware, createStore } from "redux";
+import { createStore } from "redux";
 import { composeWithDevTools } from "redux-devtools-extension";
 import rootReducer from "reducers";
 import setAuthToken from "helpers/setAuthToken";
 import { HotModule } from "interfaces";
 
 export default function configureStore(preloadedState: {}) {
-  const middlewares = [];
-  const middlewareEnhancer = applyMiddleware(...middlewares);
+  // const middlewares = [];
+  // const middlewareEnhancer = applyMiddleware(...middlewares);
 
-  const enhancers = [middlewareEnhancer];
-  const composedEnhancers = composeWithDevTools(...enhancers);
+  // const enhancers = [middlewareEnhancer];
+  const composedEnhancers = composeWithDevTools();
 
   const store = createStore(rootReducer, preloadedState, composedEnhancers);
 
