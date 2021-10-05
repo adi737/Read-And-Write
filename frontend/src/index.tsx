@@ -10,7 +10,16 @@ import { HotModule } from 'interfaces';
 import { io } from 'socket.io-client';
 
 export const store = configureStore({
-  user: {},
+  user: {
+    token: localStorage.getItem('token'),
+    userID: null,
+    email: null,
+    nick: null,
+    avatar: null,
+    date: null,
+    isLogged: null,
+    loading: true
+  },
   onlineUsers: []
 });
 
