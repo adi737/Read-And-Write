@@ -34,11 +34,17 @@ export const Chat: React.FC<ChatProps> =
       const messagesCache =
         queryClient.getQueriesData(["messages", conversationId]);
 
+      const listener = (message) => {
+        queryClient.setQueryData(["messages", conversationId],
+          (messages: any) => [...messages, message])
+      }
+
       if (messagesCache) {
-        socket.on('getMessage', (message) => {
-          queryClient.setQueryData(["messages", conversationId],
-            (messages: any) => [...messages, message])
-        });
+        socket.on('getMessage', listener);
+      }
+
+      return () => {
+        socket.off('getMessage', listener)
       }
     }, [conversationId, queryClient]);
 
